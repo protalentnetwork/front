@@ -1,7 +1,12 @@
 # Getting Started
 
-First, run the development server:
+First, install dependencies:
 
+```bash
+    npm ci
+```
+
+Then, run the server:
 ```bash
     npm run dev
 ```
