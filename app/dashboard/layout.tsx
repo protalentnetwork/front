@@ -1,20 +1,37 @@
-import { Header } from "@/components/Header";
-import { Sidebar } from "@/components/Sidebar";
+import { BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { BreadcrumbItem, BreadcrumbList } from "@/components/ui/breadcrumb";
+import { AppSidebar } from "@/components/app-sidebar";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset } from "@/components/ui/sidebar";
+import { ModeToggle } from "@/components/mode-toggle";
 
-export default function layout({
-    children,
-}: Readonly<{
-    children: React.ReactNode;
-}>) {
+
+export default function layout({ children }: { children: React.ReactNode }) {
     return (
-        <>
-            <Header />
-            <div className="flex flex-row flex-1 h-full overflow-y-auto mt-14 relative">
-                <Sidebar />
-                <section className="flex-1 overflow-auto relative z-10">
+        <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+                <header className="flex h-16 shrink-0 items-center gap-2">
+                    <div className="flex items-center gap-2 px-4">
+                        <SidebarTrigger className="-ml-1" />
+                        <Separator orientation="vertical" className="mr-2 h-4" />
+                        <Breadcrumb>
+                            <BreadcrumbList>
+                                <BreadcrumbItem>
+                                    <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                                </BreadcrumbItem>
+                                <BreadcrumbSeparator className="hidden md:block" />
+                            </BreadcrumbList>
+                        </Breadcrumb>
+                    </div>
+                    <ModeToggle />
+                </header>
+                <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
                     {children}
-                </section>
-            </div>
-        </>
+                </div>
+            </SidebarInset>
+        </SidebarProvider>
     )
 }
