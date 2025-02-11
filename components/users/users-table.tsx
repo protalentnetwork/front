@@ -67,9 +67,12 @@ export function UsersTable({ users }: UsersTableProps) {
               <TableRow key={user.id}>
                 <TableCell>
                   <div>
-                    <p className="font-medium">{user.name}</p>
+                    <p className="font-medium">{user.username}</p>
                     <p className="text-sm text-muted-foreground">
-                      Creado: {new Date(user.createdAt).toLocaleDateString()}
+                      Creado: {new Intl.DateTimeFormat(undefined, {
+                        dateStyle: 'medium',
+                        timeZone: 'UTC'
+                      }).format(new Date(user.createdAt))}
                     </p>
                   </div>
                 </TableCell>
@@ -77,9 +80,9 @@ export function UsersTable({ users }: UsersTableProps) {
                 <TableCell>{user.office}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded-full text-xs ${
-                    user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    user.status.toLowerCase() === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                   }`}>
-                    {user.isActive ? 'Activo' : 'Inactivo'}
+                    {user.status.toLowerCase() === 'activo' ? 'Activo' : 'Inactivo'}
                   </span>
                 </TableCell>
                 <TableCell>

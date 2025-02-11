@@ -1,9 +1,9 @@
 export interface User {
   id: string
-  name: string
+  username: string
   role: string
   office: string
-  isActive: boolean
+  status: string
   receivesWithdrawals: boolean
-  createdAt: string
+  createdAt: Date
 } 
