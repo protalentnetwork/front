@@ -31,7 +31,7 @@ interface EditUserModalProps {
 export function EditUserModal({ user, isOpen, onClose, onSave }: EditUserModalProps) {
   const [formData, setFormData] = useState({
     password: "",
-    isActive: user.isActive,
+    isActive: user.status === "active",
     receivesWithdrawals: user.receivesWithdrawals,
     role: user.role,
     office: user.office,
@@ -56,7 +56,7 @@ export function EditUserModal({ user, isOpen, onClose, onSave }: EditUserModalPr
               <Label className="text-right">Usuario</Label>
               <Input
                 className="col-span-3"
-                value={user.name}
+                value={user.username}
                 disabled
               />
             </div>

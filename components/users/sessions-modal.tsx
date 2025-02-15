@@ -72,7 +72,7 @@ export function SessionsModal({ user, isOpen, onClose }: SessionsModalProps) {
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div>
               <span className="font-semibold">Usuario:</span>
-              <p className="text-muted-foreground">{user.name}</p>
+              <p className="text-muted-foreground">{user.username}</p>
             </div>
             <div>
               <span className="font-semibold">Rol:</span>
