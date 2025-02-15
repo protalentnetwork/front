@@ -8,12 +8,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useMemo } from "react"
+import { User } from "@/types/user"
 
 interface UsersFiltersProps {
   onFilterChange: (field: string, value: string) => void
+  users: User[]
 }
 
-export function UsersFilters({ onFilterChange }: UsersFiltersProps) {
+export function UsersFilters({ onFilterChange, users }: UsersFiltersProps) {
+  // Get unique normalized values for each filter
+  const filterOptions = useMemo(() => {
+    const getUniqueValues = (field: keyof User) => {
+      const values = new Set(users.map(user => user[field].toString().toLowerCase()))
+      return Array.from(values).sort()
+    }
+
+    return {
+      roles: getUniqueValues('role'),
+      offices: getUniqueValues('office'),
+      statuses: getUniqueValues('status')
+    }
+  }, [users])
+
+  // Helper to capitalize first letter
+  const capitalize = (str: string) => {
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+  }
+
   return (
     <div className="flex flex-wrap gap-4 mb-6">
       <Input
@@ -27,8 +49,11 @@ export function UsersFilters({ onFilterChange }: UsersFiltersProps) {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todos los roles</SelectItem>
-          <SelectItem value="administrador">Administrador</SelectItem>
-          <SelectItem value="usuario">Usuario</SelectItem>
+          {filterOptions.roles.map(role => (
+            <SelectItem key={role} value={role}>
+              {capitalize(role)}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
       <Select onValueChange={(value) => onFilterChange('status', value)}>
@@ -36,9 +61,12 @@ export function UsersFilters({ onFilterChange }: UsersFiltersProps) {
           <SelectValue placeholder="Filtrar por estado" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Todos</SelectItem>
-          <SelectItem value="active">Activo</SelectItem>
-          <SelectItem value="inactive">Inactivo</SelectItem>
+          <SelectItem value="all">Todos los estados</SelectItem>
+          {filterOptions.statuses.map(status => (
+            <SelectItem key={status} value={status}>
+              {capitalize(status)}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
       <Select onValueChange={(value) => onFilterChange('office', value)}>
@@ -47,8 +75,11 @@ export function UsersFilters({ onFilterChange }: UsersFiltersProps) {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todas las oficinas</SelectItem>
-          <SelectItem value="central">Central</SelectItem>
-          <SelectItem value="sucursal a">Sucursal A</SelectItem>
+          {filterOptions.offices.map(office => (
+            <SelectItem key={office} value={office}>
+              {capitalize(office)}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>

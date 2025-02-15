@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import {
   Table,
   TableBody,
@@ -11,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
+import { TicketChatModal } from "./ticket-chat-modal"
 
 interface TicketUser {
   name: string
@@ -33,6 +35,8 @@ interface TicketsTableProps {
 }
 
 export function TicketsTable({ tickets = [] }: TicketsTableProps) {
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
+
   const formatDate = (dateString: string) => {
     try {
       const date = parseISO(dateString)
@@ -81,59 +85,74 @@ export function TicketsTable({ tickets = [] }: TicketsTableProps) {
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>N°</TableHead>
-            <TableHead>Usuario</TableHead>
-            <TableHead>Asunto</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead>Prioridad</TableHead>
-            <TableHead>Creado</TableHead>
-            <TableHead>Actualizado</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {tickets.map((ticket, index) => (
-            <TableRow key={ticket.id}>
-              <TableCell className="font-medium">#{index + 1}</TableCell>
-              <TableCell>
-                <div className="flex flex-col">
-                  <span className="font-medium">{ticket.user?.name}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {ticket.user?.email}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-col">
-                  <span className="font-medium">{ticket.subject}</span>
-                  <span className="text-sm text-muted-foreground line-clamp-1">
-                    {ticket.description}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge className={getStatusColor(ticket.status)}>
-                  {ticket.status}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <Badge className={getPriorityColor(ticket.priority)}>
-                  {ticket.priority}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                {formatDate(ticket.created_at)}
-              </TableCell>
-              <TableCell>
-                {formatDate(ticket.updated_at)}
-              </TableCell>
+    <>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>N°</TableHead>
+              <TableHead>Usuario</TableHead>
+              <TableHead>Asunto</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Prioridad</TableHead>
+              <TableHead>Creado</TableHead>
+              <TableHead>Actualizado</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {tickets.map((ticket, index) => (
+              <TableRow 
+                key={ticket.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => setSelectedTicket(ticket)}
+              >
+                <TableCell className="font-medium">#{index + 1}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{ticket.user?.name}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {ticket.user?.email}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{ticket.subject}</span>
+                    <span className="text-sm text-muted-foreground line-clamp-1">
+                      {ticket.description}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge className={getStatusColor(ticket.status)}>
+                    {ticket.status}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge className={getPriorityColor(ticket.priority)}>
+                    {ticket.priority}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {formatDate(ticket.created_at)}
+                </TableCell>
+                <TableCell>
+                  {formatDate(ticket.updated_at)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {selectedTicket && (
+        <TicketChatModal
+          isOpen={!!selectedTicket}
+          onClose={() => setSelectedTicket(null)}
+          user={selectedTicket.user}
+          ticketId={selectedTicket.id}
+        />
+      )}
+    </>
   )
 } 

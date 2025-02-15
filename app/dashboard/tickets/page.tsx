@@ -1,12 +1,12 @@
 import { TicketsClient } from "@/components/tickets/tickets-client"
 
 const fetchTickets = async () => {
-  const response = await fetch(`${process.env.BACKEND_URL}/zendesk/tickets/all`)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const response = await fetch(`${baseUrl}/zendesk/tickets/all`, {
+    cache: 'no-store'
+  })
   const data = await response.json()
-  console.log('Tickets data:', JSON.stringify(data, null, 2))
-  // Si data es un array, lo usamos directamente, si no, buscamos en data.tickets
   const tickets = Array.isArray(data) ? data : data?.tickets || []
-  console.log('Tickets procesados:', JSON.stringify(tickets, null, 2))
   return tickets
 }
 
