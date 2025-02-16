@@ -5,27 +5,27 @@ const nextConfig = {
       // Zendesk routes
       {
         source: '/zendesk/:path*',
-        destination: `${process.env.BACKEND_URL}/zendesk/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/zendesk/:path*`,
       },
       // Users routes
       {
         source: '/users/:path*',
-        destination: `${process.env.BACKEND_URL}/users/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/:path*`,
       },
       // Auth routes
       {
         source: '/auth/:path*',
-        destination: `${process.env.BACKEND_URL}/auth/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/:path*`,
       },
       // Transactions routes
       {
         source: '/transactions/:path*',
-        destination: `${process.env.BACKEND_URL}/transactions/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/transactions/:path*`,
       },
       // Cualquier otra ruta de la API
       {
         source: '/api/:path*',
-        destination: `${process.env.BACKEND_URL}/api/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/:path*`,
       },
     ]
   },
