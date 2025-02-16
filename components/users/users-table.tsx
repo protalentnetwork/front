@@ -25,6 +25,26 @@ interface UsersTableProps {
   users: User[]
 }
 
+function getStatusDisplay(status: string) {
+  const normalizedStatus = status.toLowerCase()
+  if (['active', 'activo'].includes(normalizedStatus)) {
+    return {
+      label: 'Activo',
+      className: 'bg-green-100 text-green-800'
+    }
+  }
+  if (['inactive', 'inactivo'].includes(normalizedStatus)) {
+    return {
+      label: 'Inactivo',
+      className: 'bg-red-100 text-red-800'
+    }
+  }
+  return {
+    label: status,
+    className: 'bg-gray-100 text-gray-800'
+  }
+}
+
 export function UsersTable({ users }: UsersTableProps) {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -80,9 +100,9 @@ export function UsersTable({ users }: UsersTableProps) {
                 <TableCell>{user.office}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded-full text-xs ${
-                    user.status.toLowerCase() === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    getStatusDisplay(user.status).className
                   }`}>
-                    {user.status.toLowerCase() === 'activo' ? 'Activo' : 'Inactivo'}
+                    {getStatusDisplay(user.status).label}
                   </span>
                 </TableCell>
                 <TableCell>

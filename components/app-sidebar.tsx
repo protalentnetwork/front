@@ -6,6 +6,7 @@ import {
   Frame,
   NotebookTabs,
   PieChart,
+  Ticket,
   Users,
 } from "lucide-react"
 
@@ -63,6 +64,13 @@ const data = {
           url: "/dashboard/reports/operators-reports",
         },
       ],
+    },
+  ],
+  tickets: [
+    {
+      name: "Tickets",
+      url: "/dashboard/tickets",
+      icon: Ticket,
     },
   ],
   projects: [
@@ -129,6 +137,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={data.navMain} />
         <NavProjects projects={data.projects} title="Monitoreos" />
+        <NavProjects projects={data.tickets} title="Tickets" />
         <NavProjects projects={data.others} title="Otros" />
       </SidebarContent>
       <SidebarFooter>
