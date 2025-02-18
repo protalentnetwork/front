@@ -51,7 +51,7 @@ export function TicketsTable({ tickets = [] }: TicketsTableProps) {
     try {
       const date = parseISO(dateString)
       return format(date, 'dd/MM/yyyy HH:mm', { locale: es })
-    } catch (error) {
+    } catch {
       return 'Fecha inválida'
     }
   }
