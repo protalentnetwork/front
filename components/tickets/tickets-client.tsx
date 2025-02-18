@@ -34,6 +34,7 @@ export function TicketsClient({ initialTickets }: TicketsClientProps) {
   const [tickets, setTickets] = useState<Ticket[]>([])
 
   useEffect(() => {
+    console.log('initialTickets:', initialTickets)
     if (Array.isArray(initialTickets)) {
       setTickets(initialTickets)
     }
