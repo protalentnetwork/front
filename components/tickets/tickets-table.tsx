@@ -43,16 +43,12 @@ interface TicketsTableProps {
 export function TicketsTable({ tickets = [] }: TicketsTableProps) {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
 
-  const formatDate = (dateString: string | undefined | null) => {
-    if (!dateString) {
-      return 'Sin fecha'
-    }
-
+  const formatDate = (dateString: string) => {
     try {
       const date = parseISO(dateString)
       return format(date, 'dd/MM/yyyy HH:mm', { locale: es })
-    } catch {
-      return 'Fecha inválida'
+    } catch (error) {
+      return 'Fecha inválida ' + error
     }
   }
 
