@@ -19,11 +19,6 @@ interface TicketUser {
   email: string
 }
 
-interface AssignedUser {
-  name: string
-  email: string
-}
-
 interface Ticket {
   id: number
   subject: string
@@ -33,7 +28,6 @@ interface Ticket {
   updated_at: string
   description: string
   user: TicketUser
-  assigned_to: AssignedUser | null
 }
 
 interface TicketsTableProps {
@@ -101,7 +95,6 @@ export function TicketsTable({ tickets = [] }: TicketsTableProps) {
               <TableHead>Asunto</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead>Prioridad</TableHead>
-              <TableHead>Asignado</TableHead>
               <TableHead>Creado</TableHead>
               <TableHead>Actualizado</TableHead>
             </TableRow>
@@ -141,20 +134,6 @@ export function TicketsTable({ tickets = [] }: TicketsTableProps) {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {ticket.assigned_to ? (
-                    <div className="flex flex-col">
-                      <span className="font-medium">{ticket.assigned_to.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {ticket.assigned_to.email}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">
-                      Sin asignar
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell>
                   {formatDate(ticket.created_at)}
                 </TableCell>
                 <TableCell>
@@ -176,4 +155,4 @@ export function TicketsTable({ tickets = [] }: TicketsTableProps) {
       )}
     </>
   )
-}
+} 
