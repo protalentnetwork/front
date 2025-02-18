@@ -8,6 +8,11 @@ interface TicketUser {
   email: string
 }
 
+interface AssignedUser {
+  name: string
+  email: string
+}
+
 interface Ticket {
   id: number
   subject: string
@@ -17,6 +22,7 @@ interface Ticket {
   updated_at: string
   description: string
   user: TicketUser
+  assigned_to: AssignedUser | null
 }
 
 interface TicketsClientProps {
@@ -24,7 +30,7 @@ interface TicketsClientProps {
 }
 
 export function TicketsClient({ initialTickets }: TicketsClientProps) {
- 
+
   const [tickets, setTickets] = useState<Ticket[]>([])
 
   useEffect(() => {
