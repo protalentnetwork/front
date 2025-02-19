@@ -1,6 +1,4 @@
-
-import ZendeskChat from "@/components/zendesk";
-
+import ZendeskChat from '@/components/zendesk';
 
 export default function ChatPage() {
   return (
