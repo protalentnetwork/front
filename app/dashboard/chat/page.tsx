@@ -1,11 +1,10 @@
-import Chat from "./chat";
-
+import ChatDashboard from "./ChatDashboard";
 
 export default function ChatPage() {
   return (
-    <div>
-      <h1>Soporte al Cliente</h1>
-      <Chat />
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Chats en Vivo</h1>
+      <ChatDashboard />
     </div>
   )
 }
