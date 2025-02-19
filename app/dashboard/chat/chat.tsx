@@ -2,7 +2,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, X } from 'lucide-react';
+// Solo importamos Send que es el único icono que estamos usando
+import { Send } from 'lucide-react';
 
 interface ChatProps {
   chatId: string;
@@ -22,7 +23,6 @@ const Chat: React.FC<ChatProps> = ({ chatId }) => {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    // Cargar mensajes del chat específico
     const loadMessages = async () => {
       try {
         const response = await fetch(`/api/zendesk/chats/${chatId}/messages`);
@@ -50,7 +50,6 @@ const Chat: React.FC<ChatProps> = ({ chatId }) => {
     try {
       setLoading(true);
       
-      // Enviar mensaje a Zendesk
       await fetch(`/api/zendesk/chats/${chatId}/messages`, {
         method: 'POST',
         headers: {
@@ -61,7 +60,6 @@ const Chat: React.FC<ChatProps> = ({ chatId }) => {
         }),
       });
 
-      // Agregar mensaje localmente
       setMessages(prev => [...prev, {
         id: Date.now(),
         text: newMessage,
@@ -80,7 +78,7 @@ const Chat: React.FC<ChatProps> = ({ chatId }) => {
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Header */}
-      <div className="bg-blue-500 text-white p-4 flex justify-between items-center">
+      <div className="bg-blue-500 text-white p-4">
         <h3 className="font-semibold">Chat #{chatId}</h3>
       </div>
       
