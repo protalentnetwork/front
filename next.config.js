@@ -2,39 +2,28 @@
 const nextConfig = {
   async rewrites() {
     return [
-      // Zendesk routes
+      // Zendesk routes (incluyendo chats)
       {
-        source: '/zendesk/:path*',
+        source: '/api/zendesk/:path*',
         destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/zendesk/:path*`,
-      },
-      // Chat routes
-      {
-        source: '/api/zendesk/chats/:path*',
-        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/zendesk/chats/:path*`,
       },
       // Users routes
       {
-        source: '/users/:path*',
+        source: '/api/users/:path*',
         destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/:path*`,
       },
       // Auth routes
       {
-        source: '/auth/:path*',
+        source: '/api/auth/:path*',
         destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/:path*`,
       },
       // Transactions routes
       {
-        source: '/transactions/:path*',
+        source: '/api/transactions/:path*',
         destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/transactions/:path*`,
-      },
-      // Cualquier otra ruta de la API
-      {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/:path*`,
       },
     ]
   },
-  // Silenciar warnings específicos de Node.js
   webpack: (config, { webpack }) => {
     config.ignoreWarnings = [
       {
@@ -46,4 +35,4 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+module.exports = nextConfig
