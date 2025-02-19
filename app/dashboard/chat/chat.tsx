@@ -1,8 +1,6 @@
-// app/dashboard/chat/chat.tsx
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-// Solo importamos Send que es el único icono que estamos usando
 import { Send } from 'lucide-react';
 
 interface ChatProps {
