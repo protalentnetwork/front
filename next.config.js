@@ -7,6 +7,11 @@ const nextConfig = {
         source: '/zendesk/:path*',
         destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/zendesk/:path*`,
       },
+      // Chat routes
+      {
+        source: '/api/zendesk/chats/:path*',
+        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/zendesk/chats/:path*`,
+      },
       // Users routes
       {
         source: '/users/:path*',
@@ -41,4 +46,4 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig 
+export default nextConfig
