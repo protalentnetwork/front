@@ -27,15 +27,20 @@ const ChatDashboard = () => {
             try {
                 setIsLoading(true);
                 setError(null);
-                // Asegúrate de que esta URL corresponda a tu backend
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-                const response = await fetch(`${apiUrl}/zendesk/chat/chats`);
-                
+                // Usa la URL del backend desplegado
+                const response = await fetch('https://backoffice-casino-front-production.up.railway.app/zendesk/chat/chats', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include' // Incluye las cookies en la petición
+                });
+
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
                 }
-                
+
                 const data = await response.json();
                 setActiveChats(data);
             } catch (error) {
@@ -47,7 +52,7 @@ const ChatDashboard = () => {
         };
 
         loadActiveChats();
-        
+
         // Opcional: Actualizar chats cada 30 segundos
         const interval = setInterval(loadActiveChats, 30000);
         return () => clearInterval(interval);
