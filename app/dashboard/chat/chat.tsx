@@ -2,9 +2,27 @@
 
 import React, { useEffect, useState } from 'react';
 
+// Definimos interfaces específicas para las opciones del widget
+interface ZendeskWebWidgetSettings {
+    webWidget: {
+        color?: {
+            theme?: string;
+        };
+        launcher?: {
+            chatLabel?: {
+                [key: string]: string;
+            };
+        };
+    };
+}
+
 declare global {
     interface Window {
-        zE?: (action: string, command: string, options?: Record<string, any>) => void;
+        zE?: (
+            action: string,
+            command: string,
+            options?: ZendeskWebWidgetSettings | string
+        ) => void;
     }
 }
 
@@ -18,13 +36,10 @@ const Chat = ({ chatId }: ChatProps) => {
     useEffect(() => {
         const loadZendeskWidget = () => {
             if (window.zE) {
-                // Configurar y mostrar el widget
                 window.zE('messenger', 'show');
 
-                // Si tenemos un chatId, podemos usarlo para cargar la conversación específica
                 if (chatId) {
                     window.zE('messenger', 'open');
-                    // Aquí podrías agregar lógica adicional para cargar el chat específico
                     console.log('Cargando chat específico:', chatId);
                 }
 
@@ -43,8 +58,9 @@ const Chat = ({ chatId }: ChatProps) => {
                     setWidgetLoaded(true);
 
                     // Configuración adicional del widget
-                    window.zE('webWidget', 'setLocale');
-                    window.zE('webWidget', 'updateSettings', {
+                    window.zE('webWidget', 'setLocale', 'es');
+
+                    const widgetSettings: ZendeskWebWidgetSettings = {
                         webWidget: {
                             color: {
                                 theme: '#000000'
@@ -55,8 +71,14 @@ const Chat = ({ chatId }: ChatProps) => {
                                 }
                             }
                         }
-                    });
+                    };
+
+                    window.zE('webWidget', 'updateSettings', widgetSettings);
                 }
+            };
+
+            script.onerror = () => {
+                console.error('Error al cargar el Widget de Zendesk');
             };
 
             document.body.appendChild(script);
@@ -72,7 +94,7 @@ const Chat = ({ chatId }: ChatProps) => {
         };
 
         loadZendeskWidget();
-    }, [chatId]); // Agregamos chatId como dependencia
+    }, [chatId]);
 
     return (
         <div className="h-full relative">
