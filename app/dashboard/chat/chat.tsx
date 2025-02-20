@@ -2,11 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 
-interface ChatProps {
-  chatId: string;
-}
-
-const Chat = ({ chatId }: ChatProps) => {
+const Chat = () => {
   const [widgetLoaded, setWidgetLoaded] = useState(false);
 
   useEffect(() => {
@@ -16,7 +12,6 @@ const Chat = ({ chatId }: ChatProps) => {
     }
 
     const loadZendeskWidget = () => {
-      // Si el widget ya está cargado
       if (window.zE) {
         window.zE('messenger', 'show');
         setWidgetLoaded(true);
@@ -29,7 +24,6 @@ const Chat = ({ chatId }: ChatProps) => {
       script.async = true;
 
       script.onload = () => {
-        // Verificar que zE esté disponible después de cargar el script
         if (window.zE) {
           window.zE('messenger', 'show');
           setWidgetLoaded(true);
@@ -48,7 +42,6 @@ const Chat = ({ chatId }: ChatProps) => {
         if (document.body.contains(script)) {
           document.body.removeChild(script);
         }
-        // Ocultar el widget solo si zE existe
         if (window.zE) {
           window.zE('messenger', 'hide');
         }
@@ -56,8 +49,6 @@ const Chat = ({ chatId }: ChatProps) => {
     };
 
     loadZendeskWidget();
-
-    // No recargamos el script si chatId cambia
   }, []); // Dependencias vacías para cargar solo una vez
 
   return (
