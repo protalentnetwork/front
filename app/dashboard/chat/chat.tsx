@@ -16,13 +16,17 @@ interface ZendeskWebWidgetSettings {
     };
 }
 
+// Definición del tipo para la función zE
+type ZendeskFunction = (
+    action: string,
+    command: string,
+    options?: string | ZendeskWebWidgetSettings | Record<string, string>
+) => void;
+
+// Extendemos el objeto window global
 declare global {
     interface Window {
-        zE?: (
-            action: string,
-            command: string,
-            options?: ZendeskWebWidgetSettings | string
-        ) => void;
+        zE?: ZendeskFunction;
     }
 }
 
