@@ -2,66 +2,72 @@
 
 import React, { useEffect, useState } from 'react';
 
-const Chat = () => {
-  const [widgetLoaded, setWidgetLoaded] = useState(false);
-
-  useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_ZENDESK_KEY) {
-      console.error('Zendesk key is missing. Please set NEXT_PUBLIC_ZENDESK_KEY in your environment.');
-      return;
+declare global {
+    interface Window {
+        zE?: (action: string, command: string, options?: any) => void;
     }
+}
 
-    const loadZendeskWidget = () => {
-      if (window.zE) {
-        window.zE('messenger', 'show');
-        setWidgetLoaded(true);
-        return;
-      }
+const Chat = () => {
+    const [widgetLoaded, setWidgetLoaded] = useState(false);
 
-      const script = document.createElement('script');
-      script.id = 'ze-snippet';
-      script.src = `https://static.zdassets.com/ekr/snippet.js?key=${process.env.NEXT_PUBLIC_ZENDESK_KEY}`;
-      script.async = true;
-
-      script.onload = () => {
-        if (window.zE) {
-          window.zE('messenger', 'show');
-          setWidgetLoaded(true);
-        } else {
-          console.error('Zendesk zE function is not available after script load.');
+    useEffect(() => {
+        if (!process.env.NEXT_PUBLIC_ZENDESK_KEY) {
+            console.error('Zendesk key is missing. Please set NEXT_PUBLIC_ZENDESK_KEY in your environment.');
+            return;
         }
-      };
 
-      script.onerror = () => {
-        console.error('Failed to load Zendesk Widget');
-      };
+        const loadZendeskWidget = () => {
+            if (window.zE) {
+                window.zE('messenger', 'show');
+                setWidgetLoaded(true);
+                return;
+            }
 
-      document.body.appendChild(script);
+            const script = document.createElement('script');
+            script.id = 'ze-snippet';
+            script.src = `https://static.zdassets.com/ekr/snippet.js?key=${process.env.NEXT_PUBLIC_ZENDESK_KEY}`;
+            script.async = true;
 
-      return () => {
-        if (document.body.contains(script)) {
-          document.body.removeChild(script);
-        }
-        if (window.zE) {
-          window.zE('messenger', 'hide');
-        }
-      };
-    };
+            script.onload = () => {
+                if (window.zE) {
+                    window.zE('messenger', 'show');
+                    setWidgetLoaded(true);
+                } else {
+                    console.error('Zendesk zE function is not available after script load.');
+                }
+            };
 
-    loadZendeskWidget();
-  }, []); // Dependencias vacías para cargar solo una vez
+            script.onerror = () => {
+                console.error('Failed to load Zendesk Widget');
+            };
 
-  return (
-    <div className="h-full">
-      {widgetLoaded ? (
-        <div id="zendesk-chat-container" className="h-full" />
-      ) : (
-        <div className="h-full flex items-center justify-center text-gray-500">
-          Loading Zendesk Chat...
+            document.body.appendChild(script);
+
+            return () => {
+                if (document.body.contains(script)) {
+                    document.body.removeChild(script);
+                }
+                if (window.zE) {
+                    window.zE('messenger', 'hide');
+                }
+            };
+        };
+
+        loadZendeskWidget();
+    }, []); // Sin dependencias, carga una sola vez
+
+    return (
+        <div className="h-full">
+            {widgetLoaded ? (
+                <div id="zendesk-chat-container" className="h-full" />
+            ) : (
+                <div className="h-full flex items-center justify-center text-gray-500">
+                    Loading Zendesk Chat...
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 };
 
 export default Chat;

@@ -23,7 +23,7 @@ declare global {
                 };
             };
         };
-        zE?: (type: string, action: string) => void;
+        zE?: (action: string, command: string, options?: any) => void;
     }
 }
 
