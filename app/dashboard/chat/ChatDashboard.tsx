@@ -122,7 +122,7 @@ const ChatDashboard = () => {
             </div>
             <div className="flex-1">
                 {selectedChat ? (
-                    <Chat chatId={''} />
+                    <Chat chatId={selectedChat} /> // Pasamos el selectedChat como chatId
                 ) : (
                     <div className="h-full flex items-center justify-center text-gray-500">
                         Selecciona un chat para comenzar

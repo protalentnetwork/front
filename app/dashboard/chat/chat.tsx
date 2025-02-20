@@ -2,10 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 
-// Declaración de tipos para window.zE
 declare global {
     interface Window {
-        zE?: (action: string, command: string, options?: Record<string, string>) => void;
+        zE?: (action: string, command: string, options?: Record<string, any>) => void;
     }
 }
 
@@ -19,7 +18,16 @@ const Chat = ({ chatId }: ChatProps) => {
     useEffect(() => {
         const loadZendeskWidget = () => {
             if (window.zE) {
+                // Configurar y mostrar el widget
                 window.zE('messenger', 'show');
+
+                // Si tenemos un chatId, podemos usarlo para cargar la conversación específica
+                if (chatId) {
+                    window.zE('messenger', 'open');
+                    // Aquí podrías agregar lógica adicional para cargar el chat específico
+                    console.log('Cargando chat específico:', chatId);
+                }
+
                 setWidgetLoaded(true);
                 return;
             }
@@ -33,13 +41,22 @@ const Chat = ({ chatId }: ChatProps) => {
                 if (window.zE) {
                     window.zE('messenger', 'show');
                     setWidgetLoaded(true);
-                } else {
-                    console.error('Zendesk zE function no está disponible después de cargar el script.');
-                }
-            };
 
-            script.onerror = () => {
-                console.error('Error al cargar el Widget de Zendesk');
+                    // Configuración adicional del widget
+                    window.zE('webWidget', 'setLocale');
+                    window.zE('webWidget', 'updateSettings', {
+                        webWidget: {
+                            color: {
+                                theme: '#000000'
+                            },
+                            launcher: {
+                                chatLabel: {
+                                    'es-ES': 'Chat con nosotros'
+                                }
+                            }
+                        }
+                    });
+                }
             };
 
             document.body.appendChild(script);
@@ -55,12 +72,18 @@ const Chat = ({ chatId }: ChatProps) => {
         };
 
         loadZendeskWidget();
-    }, []);
+    }, [chatId]); // Agregamos chatId como dependencia
 
     return (
-        <div className="h-full">
+        <div className="h-full relative">
             {widgetLoaded ? (
-                <div id="zendesk-chat-container" className="h-full" />
+                <div id="zendesk-chat-container" className="h-full">
+                    {chatId && (
+                        <div className="absolute top-0 left-0 p-4 bg-blue-100 rounded-md">
+                            Chat ID: {chatId}
+                        </div>
+                    )}
+                </div>
             ) : (
                 <div className="h-full flex items-center justify-center text-gray-500">
                     Cargando Zendesk Chat...
