@@ -26,10 +26,10 @@ const ChatDashboard = () => {
             try {
                 setIsLoading(true);
                 setError(null);
-                
+
                 const response = await fetch(`${API_URL}/zendesk/chat/chats`, {
                     method: 'GET',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
                         // Eliminamos credentials: 'include' si no estamos usando cookies
@@ -122,7 +122,7 @@ const ChatDashboard = () => {
             </div>
             <div className="flex-1">
                 {selectedChat ? (
-                    <Chat /> // Pasamos chatId como prop
+                    <Chat chatId={''} />
                 ) : (
                     <div className="h-full flex items-center justify-center text-gray-500">
                         Selecciona un chat para comenzar

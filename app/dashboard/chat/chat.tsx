@@ -9,17 +9,14 @@ declare global {
     }
 }
 
+interface ChatProps {
+    chatId: string;
+}
 
-
-const Chat = () => {
+const Chat = ({ chatId }: ChatProps) => {
     const [widgetLoaded, setWidgetLoaded] = useState(false);
 
     useEffect(() => {
-        if (!process.env.NEXT_PUBLIC_ZENDESK_KEY) {
-            console.error('Zendesk key is missing. Please set NEXT_PUBLIC_ZENDESK_KEY in your environment.');
-            return;
-        }
-
         const loadZendeskWidget = () => {
             if (window.zE) {
                 window.zE('messenger', 'show');
@@ -29,7 +26,7 @@ const Chat = () => {
 
             const script = document.createElement('script');
             script.id = 'ze-snippet';
-            script.src = `https://static.zdassets.com/ekr/snippet.js?key=${process.env.NEXT_PUBLIC_ZENDESK_KEY}`;
+            script.src = 'https://static.zdassets.com/ekr/snippet.js?key=a7fd529e-74a6-49a9-9297-2b754c8c25f2';
             script.async = true;
 
             script.onload = () => {
@@ -37,12 +34,12 @@ const Chat = () => {
                     window.zE('messenger', 'show');
                     setWidgetLoaded(true);
                 } else {
-                    console.error('Zendesk zE function is not available after script load.');
+                    console.error('Zendesk zE function no está disponible después de cargar el script.');
                 }
             };
 
             script.onerror = () => {
-                console.error('Failed to load Zendesk Widget');
+                console.error('Error al cargar el Widget de Zendesk');
             };
 
             document.body.appendChild(script);
@@ -58,7 +55,7 @@ const Chat = () => {
         };
 
         loadZendeskWidget();
-    }, []); // Sin dependencia de chatId, ya que el widget no lo usa
+    }, []);
 
     return (
         <div className="h-full">
@@ -66,7 +63,7 @@ const Chat = () => {
                 <div id="zendesk-chat-container" className="h-full" />
             ) : (
                 <div className="h-full flex items-center justify-center text-gray-500">
-                    Loading Zendesk Chat...
+                    Cargando Zendesk Chat...
                 </div>
             )}
         </div>
