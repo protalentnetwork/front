@@ -1,31 +1,8 @@
+// components/ZendeskChat.tsx
 'use client';
 
 import { useEffect } from 'react';
-
-// Extender la interfaz Window para TypeScript
-declare global {
-    interface Window {
-        zESettings?: {
-            webWidget: {
-                chat: {
-                    departments: {
-                        select?: string;
-                    };
-                    defaultMessage?: string;
-                };
-                offset: {
-                    horizontal: string;
-                    vertical: string;
-                };
-                position: {
-                    horizontal: string;
-                    vertical: string;
-                };
-            };
-        };
-        zE?: (action: string, command: string, options?: Record<string, string>) => void; // Cambiado any por Record<string, string>
-    }
-}
+import type { ZendeskWebWidgetSettings } from '../types/zendesk';
 
 interface ZendeskChatProps {
     zendeskKey: string;
@@ -39,14 +16,12 @@ const ZendeskChat: React.FC<ZendeskChatProps> = ({
     defaultMessage
 }) => {
     useEffect(() => {
-        // Crear el script de Zendesk
         const script = document.createElement('script');
         script.id = 'ze-snippet';
         script.src = `https://static.zdassets.com/ekr/snippet.js?key=${zendeskKey}`;
         script.async = true;
 
-        // Configurar el widget
-        window.zESettings = {
+        const settings: ZendeskWebWidgetSettings = {
             webWidget: {
                 chat: {
                     departments: {
@@ -62,14 +37,24 @@ const ZendeskChat: React.FC<ZendeskChatProps> = ({
             }
         };
 
-        // Agregar el script al documento
+        window.zESettings = settings;
+
         document.head.appendChild(script);
 
+        script.onload = () => {
+            if (window.zE) {
+                window.zE('webWidget', 'setLocale', 'es');
+                window.zE('webWidget:on', 'open', 'function() { console.log("Widget abierto"); }');
+            }
+        };
+
         return () => {
-            // Limpiar el script cuando el componente se desmonte
             const zendeskScript = document.getElementById('ze-snippet');
             if (zendeskScript) {
                 document.head.removeChild(zendeskScript);
+            }
+            if (window.zE) {
+                window.zE('webWidget', 'hide');
             }
         };
     }, [zendeskKey, departmentId, defaultMessage]);

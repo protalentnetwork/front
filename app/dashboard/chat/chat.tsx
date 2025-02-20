@@ -2,9 +2,19 @@
 
 import React, { useEffect, useState } from 'react';
 
+interface ChatProps {
+    chatId: string;
+}
+
 // Definimos interfaces específicas para las opciones del widget
 interface ZendeskWebWidgetSettings {
     webWidget: {
+        chat?: {
+            departments?: {
+                select?: string;
+            };
+            defaultMessage?: string;
+        };
         color?: {
             theme?: string;
         };
@@ -13,20 +23,32 @@ interface ZendeskWebWidgetSettings {
                 [key: string]: string;
             };
         };
+        offset?: {
+            horizontal: string;
+            vertical: string;
+        };
+        position?: {
+            horizontal: string;
+            vertical: string;
+        };
     };
 }
 
-// Definición del tipo para la función zE
-type ZendeskFunction = (
-    action: string,
-    command: string,
-    options?: string | ZendeskWebWidgetSettings | Record<string, string>
-) => void;
+// Definimos el tipo para los callbacks
+type ZendeskCallback = () => void;
+
+// Definimos el tipo para las opciones de zE
+type ZendeskOptions = string | ZendeskWebWidgetSettings | ZendeskCallback | Record<string, string>;
 
 // Extendemos el objeto window global
 declare global {
     interface Window {
-        zE?: ZendeskFunction;
+        zESettings?: ZendeskWebWidgetSettings;
+        zE?: (
+            action: string,
+            command: string,
+            options?: ZendeskOptions
+        ) => void;
     }
 }
 
@@ -56,28 +78,33 @@ const Chat = ({ chatId }: ChatProps) => {
             script.src = 'https://static.zdassets.com/ekr/snippet.js?key=a7fd529e-74a6-49a9-9297-2b754c8c25f2';
             script.async = true;
 
+            // Configuración inicial del widget
+            window.zESettings = {
+                webWidget: {
+                    chat: {
+                        defaultMessage: '¿En qué puedo ayudarte?'
+                    },
+                    color: {
+                        theme: '#000000'
+                    },
+                    position: {
+                        horizontal: 'right',
+                        vertical: 'bottom'
+                    }
+                }
+            };
+
             script.onload = () => {
                 if (window.zE) {
                     window.zE('messenger', 'show');
-                    setWidgetLoaded(true);
-
-                    // Configuración adicional del widget
                     window.zE('webWidget', 'setLocale', 'es');
 
-                    const widgetSettings: ZendeskWebWidgetSettings = {
-                        webWidget: {
-                            color: {
-                                theme: '#000000'
-                            },
-                            launcher: {
-                                chatLabel: {
-                                    'es-ES': 'Chat con nosotros'
-                                }
-                            }
-                        }
-                    };
+                    // Ejemplo de uso de callback
+                    window.zE('webWidget:on', 'chat:connected', () => {
+                        console.log('Chat conectado');
+                    });
 
-                    window.zE('webWidget', 'updateSettings', widgetSettings);
+                    setWidgetLoaded(true);
                 }
             };
 
