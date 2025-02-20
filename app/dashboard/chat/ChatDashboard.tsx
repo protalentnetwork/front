@@ -18,35 +18,34 @@ const ChatDashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Usa la variable de entorno o un fallback
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    // Asegúrate de que esta URL coincida con tu backend en Railway
+    const API_URL = 'https://backoffice-casino-back-production.up.railway.app';
 
     useEffect(() => {
         const loadActiveChats = async () => {
             try {
                 setIsLoading(true);
                 setError(null);
-                console.log('Fetching from:', `${API_URL}/zendesk/chat/chats`); // Para debug
-
+                
                 const response = await fetch(`${API_URL}/zendesk/chat/chats`, {
                     method: 'GET',
-                    headers: {
+                    headers: { 
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    credentials: 'include',
+                        'Accept': 'application/json',
+                        // Eliminamos credentials: 'include' si no estamos usando cookies
+                    }
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Error HTTP: ${response.status}`);
+                    console.error('Error en la respuesta:', response.status, response.statusText);
+                    throw new Error(`Error en la petición: ${response.status}`);
                 }
 
                 const data: ZendeskChat[] = await response.json();
-                console.log('Received data:', data); // Para debug
                 setActiveChats(data.filter(chat => chat.status === 'active'));
             } catch (error) {
-                console.error('Error loading chats:', error);
-                setError(error instanceof Error ? error.message : 'Failed to load chats');
+                console.error('Error detallado:', error);
+                setError(error instanceof Error ? error.message : 'Error al cargar los chats');
             } finally {
                 setIsLoading(false);
             }
@@ -55,7 +54,7 @@ const ChatDashboard = () => {
         loadActiveChats();
         const interval = setInterval(loadActiveChats, 30000);
         return () => clearInterval(interval);
-    }, [API_URL]);
+    }, []);
 
     if (isLoading) {
         return (
