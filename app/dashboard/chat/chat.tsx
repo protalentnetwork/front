@@ -9,11 +9,9 @@ declare global {
     }
 }
 
-interface ChatProps {
-    chatId: string;
-}
 
-const Chat = ({ chatId }: ChatProps) => {
+
+const Chat = () => {
     const [widgetLoaded, setWidgetLoaded] = useState(false);
 
     useEffect(() => {

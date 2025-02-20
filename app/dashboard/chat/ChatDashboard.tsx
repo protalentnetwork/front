@@ -18,30 +18,31 @@ const ChatDashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Usa la variable de entorno o un fallback
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
     useEffect(() => {
         const loadActiveChats = async () => {
             try {
                 setIsLoading(true);
                 setError(null);
-                const response = await fetch('https://backoffice-casino-front-production.up.railway.app/zendesk/chat/chats', {
+                console.log('Fetching from:', `${API_URL}/zendesk/chat/chats`); // Para debug
+
+                const response = await fetch(`${API_URL}/zendesk/chat/chats`, {
                     method: 'GET',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
                     credentials: 'include',
                 });
 
                 if (!response.ok) {
-                    const text = await response.text(); // Obtener la respuesta como texto
-                    console.log('Response Status:', response.status);
-                    console.log('Response Text:', text); // Depurar qué devuelve el servidor
-                    try {
-                        const errorData = JSON.parse(text); // Intentar parsear como JSON
-                        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-                    } catch {
-                        throw new Error(`HTTP error! status: ${response.status} - Response is not JSON: ${text.substring(0, 100)}...`);
-                    }
+                    throw new Error(`Error HTTP: ${response.status}`);
                 }
 
                 const data: ZendeskChat[] = await response.json();
+                console.log('Received data:', data); // Para debug
                 setActiveChats(data.filter(chat => chat.status === 'active'));
             } catch (error) {
                 console.error('Error loading chats:', error);
@@ -54,7 +55,7 @@ const ChatDashboard = () => {
         loadActiveChats();
         const interval = setInterval(loadActiveChats, 30000);
         return () => clearInterval(interval);
-    }, []);
+    }, [API_URL]);
 
     if (isLoading) {
         return (
@@ -87,9 +88,8 @@ const ChatDashboard = () => {
                                 <div
                                     key={chat.id}
                                     onClick={() => setSelectedChat(chat.id)}
-                                    className={`p-4 rounded-lg cursor-pointer hover:bg-gray-50 ${
-                                        selectedChat === chat.id ? 'bg-blue-50 border border-blue-200' : 'border border-transparent'
-                                    }`}
+                                    className={`p-4 rounded-lg cursor-pointer hover:bg-gray-50 ${selectedChat === chat.id ? 'bg-blue-50 border border-blue-200' : 'border border-transparent'
+                                        }`}
                                 >
                                     <div className="flex justify-between items-start">
                                         <div>
@@ -102,9 +102,8 @@ const ChatDashboard = () => {
                                                 {new Date(chat.timestamp).toLocaleTimeString()}
                                             </span>
                                             <span
-                                                className={`text-xs px-2 py-1 rounded mt-1 ${
-                                                    chat.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                                }`}
+                                                className={`text-xs px-2 py-1 rounded mt-1 ${chat.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                                    }`}
                                             >
                                                 {chat.status}
                                             </span>
@@ -124,7 +123,7 @@ const ChatDashboard = () => {
             </div>
             <div className="flex-1">
                 {selectedChat ? (
-                    <Chat chatId={selectedChat} /> // Pasamos chatId como prop
+                    <Chat /> // Pasamos chatId como prop
                 ) : (
                     <div className="h-full flex items-center justify-center text-gray-500">
                         Selecciona un chat para comenzar
