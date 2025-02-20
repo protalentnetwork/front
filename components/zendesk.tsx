@@ -23,7 +23,7 @@ declare global {
                 };
             };
         };
-        zE?: (action: string, command: string, options?: any) => void;
+        zE?: (action: string, command: string, options?: Record<string, string>) => void; // Cambiado any por Record<string, string>
     }
 }
 

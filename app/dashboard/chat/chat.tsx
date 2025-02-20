@@ -2,13 +2,18 @@
 
 import React, { useEffect, useState } from 'react';
 
+// Declaración de tipos para window.zE
 declare global {
     interface Window {
-        zE?: (action: string, command: string, options?: any) => void;
+        zE?: (action: string, command: string, options?: Record<string, string>) => void;
     }
 }
 
-const Chat = () => {
+interface ChatProps {
+    chatId: string;
+}
+
+const Chat = ({ chatId }: ChatProps) => {
     const [widgetLoaded, setWidgetLoaded] = useState(false);
 
     useEffect(() => {
@@ -55,7 +60,7 @@ const Chat = () => {
         };
 
         loadZendeskWidget();
-    }, []); // Sin dependencias, carga una sola vez
+    }, []); // Sin dependencia de chatId, ya que el widget no lo usa
 
     return (
         <div className="h-full">
