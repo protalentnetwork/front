@@ -5,7 +5,7 @@ import io from 'socket.io-client';
 import Chat from './chat';
 
 const socket = io('https://backoffice-casino-back-production.up.railway.app', {
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'], // Cambia el orden: polling primero
     reconnection: true,
     reconnectionAttempts: 5,
 });

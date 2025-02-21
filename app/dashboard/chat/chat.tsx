@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 
 const socket = io('https://backoffice-casino-back-production.up.railway.app', {
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'], // Cambia el orden: polling primero
     reconnection: true,
     reconnectionAttempts: 5,
 });
