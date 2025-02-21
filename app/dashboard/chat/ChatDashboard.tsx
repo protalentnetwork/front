@@ -5,7 +5,7 @@ import io from 'socket.io-client';
 import Chat from './chat';
 
 const socket = io('https://backoffice-casino-back-production.up.railway.app', {
-    transports: ['polling', 'websocket'], // Cambia el orden: polling primero
+    transports: ['polling', 'websocket'],
     reconnection: true,
     reconnectionAttempts: 5,
 });
@@ -25,6 +25,7 @@ interface ChatData {
 const ChatDashboard: React.FC = () => {
     const [activeChats, setActiveChats] = useState<ChatData[]>([]);
     const [selectedChat, setSelectedChat] = useState<string | null>(null);
+    const [messages, setMessages] = useState<Message[]>([]); // Estado para los mensajes del chat seleccionado
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const agentId = 'agent1'; // Temporal, reemplaza con JWT
@@ -55,6 +56,9 @@ const ChatDashboard: React.FC = () => {
 
         socket.on('newMessage', (message: Message) => {
             console.log('Nuevo mensaje recibido:', message);
+            if (selectedChat === message.userId) {
+                setMessages((prev) => [...prev, message]);
+            }
             setActiveChats((prev) => {
                 if (!prev.some((chat) => chat.userId === message.userId)) {
                     return [...prev, { userId: message.userId, agentId: null }];
@@ -63,14 +67,27 @@ const ChatDashboard: React.FC = () => {
             });
         });
 
+        socket.on('chatMessages', ({ userId, messages: chatMessages }: { userId: string; messages: Message[] }) => {
+            console.log(`Mensajes recibidos para ${userId}:`, chatMessages);
+            if (selectedChat === userId) {
+                setMessages(chatMessages);
+            }
+        });
+
         return () => {
             socket.off('connect');
             socket.off('connect_error');
             socket.off('disconnect');
             socket.off('activeChats');
             socket.off('newMessage');
+            socket.off('chatMessages');
         };
-    }, [agentId]);
+    }, [selectedChat, agentId]);
+
+    const selectChat = (userId: string) => {
+        setSelectedChat(userId);
+        socket.emit('selectChat', { userId, agentId }); // Solicita los mensajes al backend
+    };
 
     const assignToMe = (userId: string) => {
         console.log(`Asignando chat ${userId} al agente ${agentId}`);
@@ -108,7 +125,7 @@ const ChatDashboard: React.FC = () => {
                             activeChats.map((chat) => (
                                 <div
                                     key={chat.userId}
-                                    onClick={() => setSelectedChat(chat.userId)}
+                                    onClick={() => selectChat(chat.userId)} // Cambia a selectChat
                                     className={`p-4 rounded-lg cursor-pointer hover:bg-gray-50 ${selectedChat === chat.userId ? 'bg-blue-50 border border-blue-200' : 'border border-transparent'
                                         }`}
                                 >
@@ -144,7 +161,23 @@ const ChatDashboard: React.FC = () => {
             </div>
             <div className="flex-1">
                 {selectedChat ? (
-                    <Chat chatId={selectedChat} />
+                    <div className="h-full flex flex-col">
+                        <div className="p-4 border-b">
+                            <h3 className="text-lg font-semibold">Chat con {selectedChat}</h3>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4">
+                            {messages.map((msg, index) => (
+                                <div key={index} className="mb-2">
+                                    <strong>{msg.sender === 'agent' ? 'Tú' : 'Cliente'}: </strong>
+                                    {msg.message}{' '}
+                                    <span className="text-xs text-gray-500">
+                                        ({new Date(msg.timestamp).toLocaleTimeString()})
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                        <Chat chatId={selectedChat} />
+                    </div>
                 ) : (
                     <div className="h-full flex items-center justify-center text-gray-500">
                         Selecciona un chat para comenzar
