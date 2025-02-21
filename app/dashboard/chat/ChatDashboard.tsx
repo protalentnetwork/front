@@ -4,7 +4,11 @@ import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import Chat from './chat';
 
-const socket = io('https://backoffice-casino-back-production.up.railway.app');
+const socket = io('https://backoffice-casino-back-production.up.railway.app', {
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionAttempts: 5,
+});
 
 interface Message {
     userId: string;
@@ -22,24 +26,35 @@ const ChatDashboard: React.FC = () => {
     const [activeChats, setActiveChats] = useState<ChatData[]>([]);
     const [selectedChat, setSelectedChat] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null); // Mantengo error para futura lógica
-    const agentId = 'agent1'; // Temporal, reemplaza con JWT cuando esté listo
+    const [error, setError] = useState<string | null>(null);
+    const agentId = 'agent1'; // Temporal, reemplaza con JWT
 
     useEffect(() => {
-        // Manejo de errores en la conexión del socket
+        socket.on('connect', () => {
+            console.log('Conectado al servidor WebSocket');
+            setIsLoading(false);
+        });
+
         socket.on('connect_error', (err) => {
+            console.error('Error de conexión WebSocket:', err.message);
             setError(`Error de conexión: ${err.message}`);
             setIsLoading(false);
+        });
+
+        socket.on('disconnect', (reason) => {
+            console.log('Desconectado del servidor WebSocket:', reason);
         });
 
         socket.emit('joinAgent', { agentId });
 
         socket.on('activeChats', (chats: ChatData[]) => {
+            console.log('Chats activos recibidos:', chats);
             setActiveChats(chats);
             setIsLoading(false);
         });
 
         socket.on('newMessage', (message: Message) => {
+            console.log('Nuevo mensaje recibido:', message);
             setActiveChats((prev) => {
                 if (!prev.some((chat) => chat.userId === message.userId)) {
                     return [...prev, { userId: message.userId, agentId: null }];
@@ -48,15 +63,17 @@ const ChatDashboard: React.FC = () => {
             });
         });
 
-        // Limpieza de listeners
         return () => {
+            socket.off('connect');
             socket.off('connect_error');
+            socket.off('disconnect');
             socket.off('activeChats');
             socket.off('newMessage');
         };
-    }, [agentId]); // Incluyo agentId como dependencia ya que se usa en el emit
+    }, [agentId]);
 
     const assignToMe = (userId: string) => {
+        console.log(`Asignando chat ${userId} al agente ${agentId}`);
         socket.emit('assignAgent', { userId, agentId });
         setSelectedChat(userId);
     };
@@ -109,7 +126,7 @@ const ChatDashboard: React.FC = () => {
                                             ) : (
                                                 <button
                                                     onClick={(e) => {
-                                                        e.stopPropagation(); // Evita que el clic en el botón dispare el onClick del div
+                                                        e.stopPropagation();
                                                         assignToMe(chat.userId);
                                                     }}
                                                     className="text-xs px-2 py-1 rounded mt-1 bg-blue-100 text-blue-800 hover:bg-blue-200"
