@@ -1,60 +1,54 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import io from 'socket.io-client';
 import Chat from './chat';
 
-interface ZendeskChat {
-    id: string;
-    visitor: { name: string; email: string };
-    status: string;
-    timestamp: string;
-    agent?: { id: string; name: string };
-    lastMessage: string;
+const socket = io('https://backoffice-casino-back-production.up.railway.app');
+
+interface Message {
+    userId: string;
+    sender: string;
+    message: string;
+    timestamp: Date;
 }
 
-const ChatDashboard = () => {
-    const [activeChats, setActiveChats] = useState<ZendeskChat[]>([]);
+interface ChatData {
+    userId: string;
+    agentId: string | null;
+}
+
+const ChatDashboard: React.FC = () => {
+    const [activeChats, setActiveChats] = useState<ChatData[]>([]);
     const [selectedChat, setSelectedChat] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    // Asegúrate de que esta URL coincida con tu backend en Railway
-    const API_URL = 'https://backoffice-casino-back-production.up.railway.app';
+    const agentId = 'agent1'; // Temporal, reemplaza con JWT cuando esté listo
 
     useEffect(() => {
-        const loadActiveChats = async () => {
-            try {
-                setIsLoading(true);
-                setError(null);
+        socket.emit('joinAgent', { agentId });
 
-                const response = await fetch(`${API_URL}/zendesk/chat/chats`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        // Eliminamos credentials: 'include' si no estamos usando cookies
-                    }
-                });
+        socket.on('activeChats', (chats: ChatData[]) => {
+            setActiveChats(chats);
+            setIsLoading(false);
+        });
 
-                if (!response.ok) {
-                    console.error('Error en la respuesta:', response.status, response.statusText);
-                    throw new Error(`Error en la petición: ${response.status}`);
-                }
-
-                const data: ZendeskChat[] = await response.json();
-                setActiveChats(data.filter(chat => chat.status === 'active'));
-            } catch (error) {
-                console.error('Error detallado:', error);
-                setError(error instanceof Error ? error.message : 'Error al cargar los chats');
-            } finally {
-                setIsLoading(false);
+        socket.on('newMessage', (message: Message) => {
+            if (!activeChats.some((chat) => chat.userId === message.userId)) {
+                setActiveChats((prev) => [...prev, { userId: message.userId, agentId: null }]);
             }
-        };
+        });
 
-        loadActiveChats();
-        const interval = setInterval(loadActiveChats, 30000);
-        return () => clearInterval(interval);
+        return () => {
+            socket.off('activeChats');
+            socket.off('newMessage');
+        };
     }, []);
+
+    const assignToMe = (userId: string) => {
+        socket.emit('assignAgent', { userId, agentId });
+        setSelectedChat(userId);
+    };
 
     if (isLoading) {
         return (
@@ -83,37 +77,34 @@ const ChatDashboard = () => {
                         {activeChats.length === 0 ? (
                             <div className="text-center py-8 text-gray-500">No hay chats activos en este momento</div>
                         ) : (
-                            activeChats.map(chat => (
+                            activeChats.map((chat) => (
                                 <div
-                                    key={chat.id}
-                                    onClick={() => setSelectedChat(chat.id)}
-                                    className={`p-4 rounded-lg cursor-pointer hover:bg-gray-50 ${selectedChat === chat.id ? 'bg-blue-50 border border-blue-200' : 'border border-transparent'
+                                    key={chat.userId}
+                                    onClick={() => setSelectedChat(chat.userId)}
+                                    className={`p-4 rounded-lg cursor-pointer hover:bg-gray-50 ${selectedChat === chat.userId ? 'bg-blue-50 border border-blue-200' : 'border border-transparent'
                                         }`}
                                 >
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <h3 className="font-medium">{chat.visitor.name || 'Visitante'}</h3>
-                                            <p className="text-sm text-gray-500">{chat.visitor.email}</p>
-                                            <p className="text-sm text-gray-600 mt-1 truncate">{chat.lastMessage}</p>
+                                            <h3 className="font-medium">Usuario {chat.userId}</h3>
+                                            <p className="text-sm text-gray-600 mt-1">Chat en vivo</p>
                                         </div>
                                         <div className="flex flex-col items-end">
-                                            <span className="text-xs text-gray-500">
-                                                {new Date(chat.timestamp).toLocaleTimeString()}
-                                            </span>
-                                            <span
-                                                className={`text-xs px-2 py-1 rounded mt-1 ${chat.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                                    }`}
-                                            >
-                                                {chat.status}
-                                            </span>
+                                            <span className="text-xs text-gray-500">Activo</span>
+                                            {chat.agentId ? (
+                                                <span className="text-xs px-2 py-1 rounded mt-1 bg-green-100 text-green-800">
+                                                    Asignado a {chat.agentId}
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => assignToMe(chat.userId)}
+                                                    className="text-xs px-2 py-1 rounded mt-1 bg-blue-100 text-blue-800 hover:bg-blue-200"
+                                                >
+                                                    Asignarme
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
-                                    {chat.agent && (
-                                        <div className="mt-2 text-sm text-gray-600 flex items-center">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
-                                            Agente: {chat.agent.name}
-                                        </div>
-                                    )}
                                 </div>
                             ))
                         )}
@@ -122,7 +113,7 @@ const ChatDashboard = () => {
             </div>
             <div className="flex-1">
                 {selectedChat ? (
-                    <Chat chatId={selectedChat} /> // Pasamos el selectedChat como chatId
+                    <Chat chatId={selectedChat} />
                 ) : (
                     <div className="h-full flex items-center justify-center text-gray-500">
                         Selecciona un chat para comenzar
