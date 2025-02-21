@@ -22,10 +22,16 @@ const ChatDashboard: React.FC = () => {
     const [activeChats, setActiveChats] = useState<ChatData[]>([]);
     const [selectedChat, setSelectedChat] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null); // Mantengo error para futura lógica
     const agentId = 'agent1'; // Temporal, reemplaza con JWT cuando esté listo
 
     useEffect(() => {
+        // Manejo de errores en la conexión del socket
+        socket.on('connect_error', (err) => {
+            setError(`Error de conexión: ${err.message}`);
+            setIsLoading(false);
+        });
+
         socket.emit('joinAgent', { agentId });
 
         socket.on('activeChats', (chats: ChatData[]) => {
@@ -34,16 +40,21 @@ const ChatDashboard: React.FC = () => {
         });
 
         socket.on('newMessage', (message: Message) => {
-            if (!activeChats.some((chat) => chat.userId === message.userId)) {
-                setActiveChats((prev) => [...prev, { userId: message.userId, agentId: null }]);
-            }
+            setActiveChats((prev) => {
+                if (!prev.some((chat) => chat.userId === message.userId)) {
+                    return [...prev, { userId: message.userId, agentId: null }];
+                }
+                return prev;
+            });
         });
 
+        // Limpieza de listeners
         return () => {
+            socket.off('connect_error');
             socket.off('activeChats');
             socket.off('newMessage');
         };
-    }, []);
+    }, [agentId]); // Incluyo agentId como dependencia ya que se usa en el emit
 
     const assignToMe = (userId: string) => {
         socket.emit('assignAgent', { userId, agentId });
@@ -97,7 +108,10 @@ const ChatDashboard: React.FC = () => {
                                                 </span>
                                             ) : (
                                                 <button
-                                                    onClick={() => assignToMe(chat.userId)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation(); // Evita que el clic en el botón dispare el onClick del div
+                                                        assignToMe(chat.userId);
+                                                    }}
                                                     className="text-xs px-2 py-1 rounded mt-1 bg-blue-100 text-blue-800 hover:bg-blue-200"
                                                 >
                                                     Asignarme
