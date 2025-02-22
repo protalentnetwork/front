@@ -1,31 +1,53 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Send, Loader2, Paperclip } from 'lucide-react';
+import { Socket } from 'socket.io-client';
+import { toast } from 'sonner';
 
 interface ChatInputProps {
     chatId: string | null;
     agentId: string;
-    socket: any;
+    socket: Socket;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ chatId, agentId, socket }) => {
+export default function ChatInput({ chatId, agentId, socket }: ChatInputProps) {
     const [input, setInput] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const handleSendMessage = async () => {
+    // Auto-resize textarea
+    useEffect(() => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const adjustHeight = () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+        };
+
+        textarea.addEventListener('input', adjustHeight);
+        return () => textarea.removeEventListener('input', adjustHeight);
+    }, []);
+
+    const handleSendMessage = useCallback(async () => {
         if (!input.trim() || !chatId || isSending) return;
 
         try {
             setIsSending(true);
 
+            // Emit socket event
             socket.emit('message', {
                 userId: chatId,
                 agentId: agentId,
                 message: input.trim()
             });
 
+            // Send HTTP request
             try {
-                await fetch('https://backoffice-casino-back-production.up.railway.app/chat/send-agent-message', {
+                const response = await fetch('https://backoffice-casino-back-production.up.railway.app/chat/send-agent-message', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -36,73 +58,74 @@ const ChatInput: React.FC<ChatInputProps> = ({ chatId, agentId, socket }) => {
                         message: input.trim()
                     }),
                 });
+
+                if (!response.ok) {
+                    throw new Error('Error al enviar el mensaje');
+                }
             } catch (error) {
                 console.error('Error al enviar mensaje por HTTP:', error);
+                toast.error('Error al enviar el mensaje');
+                return; // Don't clear input if message wasn't sent
             }
 
             setInput('');
+            if (textareaRef.current) {
+                textareaRef.current.style.height = 'auto';
+            }
         } catch (error) {
             console.error('Error al enviar mensaje:', error);
+            toast.error('Error al enviar el mensaje');
         } finally {
             setIsSending(false);
+        }
+    }, [input, chatId, agentId, socket]);
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
         }
     };
 
     return (
-        <div className="border-t bg-white p-4">
+        <div className="border-t bg-background p-4 rounded-b-xl">
             <div className="flex items-end gap-2">
-                <div className="flex-1 relative">
-                    <textarea
+                <div className="relative flex-1">
+                    <Textarea
+                        ref={textareaRef}
                         value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSendMessage();
-                            }
-                        }}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
                         placeholder="Escribe un mensaje..."
-                        className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 p-3 pr-12 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 min-h-[52px] max-h-32"
+                        className="resize-none pr-10 min-h-[52px] max-h-[200px] overflow-y-auto"
+                        disabled={isSending || !chatId}
                         rows={1}
-                        style={{
-                            height: 'auto',
-                            minHeight: '52px',
-                            maxHeight: '128px'
-                        }}
-                        disabled={isSending}
                     />
-                    <button
-                        className="absolute right-2 bottom-2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        className="absolute right-2 bottom-2 h-6 w-6"
+                        disabled={isSending || !chatId}
                         title="Adjuntar archivo"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                        </svg>
-                    </button>
+                        <Paperclip className="h-4 w-4" />
+                        <span className="sr-only">Adjuntar archivo</span>
+                    </Button>
                 </div>
-                <button
+                <Button
                     onClick={handleSendMessage}
-                    disabled={!input.trim() || isSending}
-                    className={`flex items-center justify-center rounded-lg p-3 transition-colors ${input.trim() && !isSending
-                            ? 'bg-blue-500 text-white hover:bg-blue-600'
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        }`}
+                    disabled={!input.trim() || isSending || !chatId}
+                    size="icon"
+                    className="h-10 w-10"
                 >
                     {isSending ? (
-                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                        <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="22" y1="2" x2="11" y2="13" />
-                            <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                        </svg>
+                        <Send className="h-4 w-4" />
                     )}
-                </button>
+                    <span className="sr-only">Enviar mensaje</span>
+                </Button>
             </div>
         </div>
     );
-};
-
-export default ChatInput;
+}
