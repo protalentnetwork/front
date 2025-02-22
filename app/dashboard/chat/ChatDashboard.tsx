@@ -11,21 +11,23 @@ const socket = io('https://backoffice-casino-back-production.up.railway.app', {
 });
 
 interface Message {
+    id: string;
     userId: string;
-    sender: string;
     message: string;
-    timestamp: Date;
+    sender: string;
+    agentId: string | null;
+    timestamp: string;
 }
 
 interface ChatData {
-    userId: string;
-    agentId: string | null;
+    chat_user_id: string; // Coincide con el backend
+    chat_agent_id: string | null; // Coincide con el backend
 }
 
 const ChatDashboard: React.FC = () => {
     const [activeChats, setActiveChats] = useState<ChatData[]>([]);
     const [selectedChat, setSelectedChat] = useState<string | null>(null);
-    const [messages, setMessages] = useState<Message[]>([]); // Estado para los mensajes del chat seleccionado
+    const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const agentId = 'agent1'; // Temporal, reemplaza con JWT
@@ -50,7 +52,9 @@ const ChatDashboard: React.FC = () => {
 
         socket.on('activeChats', (chats: ChatData[]) => {
             console.log('Chats activos recibidos:', chats);
-            setActiveChats(chats);
+            // Aseguramos que chats sea un array y usamos los nombres exactos del backend
+            const normalizedChats = Array.isArray(chats) ? chats : [];
+            setActiveChats(normalizedChats);
             setIsLoading(false);
         });
 
@@ -60,8 +64,8 @@ const ChatDashboard: React.FC = () => {
                 setMessages((prev) => [...prev, message]);
             }
             setActiveChats((prev) => {
-                if (!prev.some((chat) => chat.userId === message.userId)) {
-                    return [...prev, { userId: message.userId, agentId: null }];
+                if (!prev.some((chat) => chat.chat_user_id === message.userId)) {
+                    return [...prev, { chat_user_id: message.userId, chat_agent_id: message.agentId || null }];
                 }
                 return prev;
             });
@@ -70,7 +74,7 @@ const ChatDashboard: React.FC = () => {
         socket.on('chatMessages', ({ userId, messages: chatMessages }: { userId: string; messages: Message[] }) => {
             console.log(`Mensajes recibidos para ${userId}:`, chatMessages);
             if (selectedChat === userId) {
-                setMessages(chatMessages);
+                setMessages(Array.isArray(chatMessages) ? chatMessages : []);
             }
         });
 
@@ -86,13 +90,14 @@ const ChatDashboard: React.FC = () => {
 
     const selectChat = (userId: string) => {
         setSelectedChat(userId);
+        setMessages([]); // Limpia mensajes previos mientras se cargan los nuevos
         socket.emit('selectChat', { userId, agentId }); // Solicita los mensajes al backend
     };
 
     const assignToMe = (userId: string) => {
         console.log(`Asignando chat ${userId} al agente ${agentId}`);
         socket.emit('assignAgent', { userId, agentId });
-        setSelectedChat(userId);
+        selectChat(userId); // Selecciona el chat después de asignarlo
     };
 
     if (isLoading) {
@@ -124,27 +129,27 @@ const ChatDashboard: React.FC = () => {
                         ) : (
                             activeChats.map((chat) => (
                                 <div
-                                    key={chat.userId}
-                                    onClick={() => selectChat(chat.userId)} // Cambia a selectChat
-                                    className={`p-4 rounded-lg cursor-pointer hover:bg-gray-50 ${selectedChat === chat.userId ? 'bg-blue-50 border border-blue-200' : 'border border-transparent'
+                                    key={chat.chat_user_id}
+                                    onClick={() => selectChat(chat.chat_user_id)}
+                                    className={`p-4 rounded-lg cursor-pointer hover:bg-gray-50 ${selectedChat === chat.chat_user_id ? 'bg-blue-50 border border-blue-200' : 'border border-transparent'
                                         }`}
                                 >
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <h3 className="font-medium">Usuario {chat.userId}</h3>
+                                            <h3 className="font-medium">Usuario {chat.chat_user_id}</h3>
                                             <p className="text-sm text-gray-600 mt-1">Chat en vivo</p>
                                         </div>
                                         <div className="flex flex-col items-end">
                                             <span className="text-xs text-gray-500">Activo</span>
-                                            {chat.agentId ? (
+                                            {chat.chat_agent_id ? (
                                                 <span className="text-xs px-2 py-1 rounded mt-1 bg-green-100 text-green-800">
-                                                    Asignado a {chat.agentId}
+                                                    Asignado a {chat.chat_agent_id}
                                                 </span>
                                             ) : (
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        assignToMe(chat.userId);
+                                                        assignToMe(chat.chat_user_id);
                                                     }}
                                                     className="text-xs px-2 py-1 rounded mt-1 bg-blue-100 text-blue-800 hover:bg-blue-200"
                                                 >
@@ -166,15 +171,19 @@ const ChatDashboard: React.FC = () => {
                             <h3 className="text-lg font-semibold">Chat con {selectedChat}</h3>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4">
-                            {messages.map((msg, index) => (
-                                <div key={index} className="mb-2">
-                                    <strong>{msg.sender === 'agent' ? 'Tú' : 'Cliente'}: </strong>
-                                    {msg.message}{' '}
-                                    <span className="text-xs text-gray-500">
-                                        ({new Date(msg.timestamp).toLocaleTimeString()})
-                                    </span>
-                                </div>
-                            ))}
+                            {messages.length > 0 ? (
+                                messages.map((msg) => (
+                                    <div key={msg.id} className="mb-2">
+                                        <strong>{msg.sender === 'agent' ? 'Tú' : 'Cliente'}: </strong>
+                                        {msg.message}{' '}
+                                        <span className="text-xs text-gray-500">
+                                            ({new Date(msg.timestamp).toLocaleTimeString()})
+                                        </span>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-gray-500">No hay mensajes aún</p>
+                            )}
                         </div>
                         <Chat chatId={selectedChat} />
                     </div>
