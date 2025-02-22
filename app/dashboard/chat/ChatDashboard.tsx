@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
-import Chat from './chat';
+import ChatInput from './ChatInput';
 
 const socket = io('https://backoffice-casino-back-production.up.railway.app', {
     transports: ['polling', 'websocket'],
@@ -20,8 +20,8 @@ interface Message {
 }
 
 interface ChatData {
-    chat_user_id: string; // Coincide con el backend
-    chat_agent_id: string | null; // Coincide con el backend
+    chat_user_id: string;
+    chat_agent_id: string | null;
 }
 
 const ChatDashboard: React.FC = () => {
@@ -30,7 +30,7 @@ const ChatDashboard: React.FC = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const agentId = 'agent1'; // Temporal, reemplaza con JWT
+    const agentId = 'agent1';
 
     useEffect(() => {
         socket.on('connect', () => {
@@ -52,10 +52,13 @@ const ChatDashboard: React.FC = () => {
 
         socket.on('activeChats', (chats: ChatData[]) => {
             console.log('Chats activos recibidos:', chats);
-            // Aseguramos que chats sea un array y usamos los nombres exactos del backend
-            const normalizedChats = Array.isArray(chats) ? chats : [];
-            setActiveChats(normalizedChats);
+            setActiveChats(Array.isArray(chats) ? chats : []);
             setIsLoading(false);
+        });
+
+        socket.on('messageHistory', (messages: Message[]) => {
+            console.log('Historial de mensajes recibido:', messages);
+            setMessages(Array.isArray(messages) ? messages : []);
         });
 
         socket.on('newMessage', (message: Message) => {
@@ -71,33 +74,27 @@ const ChatDashboard: React.FC = () => {
             });
         });
 
-        socket.on('chatMessages', ({ userId, messages: chatMessages }: { userId: string; messages: Message[] }) => {
-            console.log(`Mensajes recibidos para ${userId}:`, chatMessages);
-            if (selectedChat === userId) {
-                setMessages(Array.isArray(chatMessages) ? chatMessages : []);
-            }
-        });
-
         return () => {
             socket.off('connect');
             socket.off('connect_error');
             socket.off('disconnect');
             socket.off('activeChats');
             socket.off('newMessage');
-            socket.off('chatMessages');
+            socket.off('messageHistory');
         };
     }, [selectedChat, agentId]);
 
     const selectChat = (userId: string) => {
+        console.log(`Seleccionando chat ${userId}`);
         setSelectedChat(userId);
-        setMessages([]); // Limpia mensajes previos mientras se cargan los nuevos
-        socket.emit('selectChat', { userId, agentId }); // Solicita los mensajes al backend
+        socket.emit('selectChat', { userId, agentId });
+        socket.emit('joinChat', { userId });
     };
 
     const assignToMe = (userId: string) => {
         console.log(`Asignando chat ${userId} al agente ${agentId}`);
         socket.emit('assignAgent', { userId, agentId });
-        selectChat(userId); // Selecciona el chat después de asignarlo
+        selectChat(userId);
     };
 
     if (isLoading) {
@@ -170,22 +167,49 @@ const ChatDashboard: React.FC = () => {
                         <div className="p-4 border-b">
                             <h3 className="text-lg font-semibold">Chat con {selectedChat}</h3>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-4">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
                             {messages.length > 0 ? (
                                 messages.map((msg) => (
-                                    <div key={msg.id} className="mb-2">
-                                        <strong>{msg.sender === 'agent' ? 'Tú' : 'Cliente'}: </strong>
-                                        {msg.message}{' '}
-                                        <span className="text-xs text-gray-500">
-                                            ({new Date(msg.timestamp).toLocaleTimeString()})
-                                        </span>
+                                    <div
+                                        key={msg.id}
+                                        className={`flex ${msg.sender === 'agent' ? 'justify-end' : 'justify-start'}`}
+                                    >
+                                        <div
+                                            className={`max-w-[70%] rounded-lg p-3 ${msg.sender === 'agent'
+                                                    ? 'bg-blue-500 text-white ml-auto'
+                                                    : 'bg-gray-100 text-gray-800'
+                                                }`}
+                                        >
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium mb-1">
+                                                    {msg.sender === 'agent' ? 'Tú' : 'Cliente'}
+                                                </span>
+                                                <p className="break-words">{msg.message}</p>
+                                                <span
+                                                    className={`text-xs mt-1 ${msg.sender === 'agent'
+                                                            ? 'text-blue-100'
+                                                            : 'text-gray-500'
+                                                        }`}
+                                                >
+                                                    {new Date(msg.timestamp).toLocaleTimeString()}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-gray-500">No hay mensajes aún</p>
+                                <div className="flex items-center justify-center h-full">
+                                    <p className="text-gray-500 text-center">
+                                        No hay mensajes aún
+                                    </p>
+                                </div>
                             )}
                         </div>
-                        <Chat chatId={selectedChat} />
+                        <ChatInput
+                            chatId={selectedChat}
+                            agentId={agentId}
+                            socket={socket}
+                        />
                     </div>
                 ) : (
                     <div className="h-full flex items-center justify-center text-gray-500">
