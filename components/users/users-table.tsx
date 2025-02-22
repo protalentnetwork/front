@@ -83,55 +83,60 @@ export function UsersTable({ users }: UsersTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>
-                  <div>
-                    <p className="font-medium">{user.username}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Creado: {new Intl.DateTimeFormat(undefined, {
-                        dateStyle: 'medium',
-                        timeZone: 'UTC'
-                      }).format(new Date(user.createdAt))}
-                    </p>
-                  </div>
-                </TableCell>
-                <TableCell>{user.role}</TableCell>
-                <TableCell>{user.office}</TableCell>
-                <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    getStatusDisplay(user.status).className
-                  }`}>
-                    {getStatusDisplay(user.status).label}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  {user.receivesWithdrawals ? 'Recibe' : 'No recibe'}
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu open={openDropdownId === user.id} onOpenChange={(open) => {
-                    setOpenDropdownId(open ? user.id : null)
-                  }}>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Abrir menú</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                        <PencilIcon className="mr-2 h-4 w-4" />
-                        <span>Editar</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleViewSessions(user)}>
-                        <History className="mr-2 h-4 w-4" />
-                        <span>Ver sesiones</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+            {!users && (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">No hay usuarios</TableCell>
               </TableRow>
-            ))}
+            )}  
+            {users && users.length > 0 && (
+              users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{user.username}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Creado: {new Intl.DateTimeFormat(undefined, {
+                          dateStyle: 'medium',
+                          timeZone: 'UTC'
+                        }).format(new Date(user.createdAt))}
+                      </p>
+                    </div>
+                  </TableCell>
+                  <TableCell>{user.role}</TableCell>
+                  <TableCell>{user.office}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusDisplay(user.status).className
+                      }`}>
+                      {getStatusDisplay(user.status).label}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    {user.receivesWithdrawals ? 'Recibe' : 'No recibe'}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu open={openDropdownId === user.id} onOpenChange={(open) => {
+                      setOpenDropdownId(open ? user.id : null)
+                    }}>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Abrir menú</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                          <PencilIcon className="mr-2 h-4 w-4" />
+                          <span>Editar</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewSessions(user)}>
+                          <History className="mr-2 h-4 w-4" />
+                          <span>Ver sesiones</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )))}
           </TableBody>
         </Table>
       </div>

@@ -20,7 +20,10 @@ export function UsersFilters({ onFilterChange, users }: UsersFiltersProps) {
   // Get unique normalized values for each filter
   const filterOptions = useMemo(() => {
     const getUniqueValues = (field: keyof User) => {
-      const values = new Set(users.map(user => user[field].toString().toLowerCase()))
+      let values = new Set<string>()
+      if(users.length === 0){
+        values = new Set(users.map(user => user[field].toString().toLowerCase()))
+      }
       return Array.from(values).sort()
     }
 
