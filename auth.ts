@@ -3,6 +3,17 @@ import Credentials from "next-auth/providers/credentials"
 import { signInSchema } from "./lib/zod"
 import type { User } from "next-auth"
 
+// Configuración de URLs permitidas
+const productionHostname = 'backoffice-casino-front-production.up.railway.app'
+const allowedHosts = [
+  'localhost:3000',
+  'localhost',
+  productionHostname,
+  `https://${productionHostname}`,
+  process.env.NEXTAUTH_URL,
+  'backoffice-casino-front.railway.internal'
+]
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
@@ -67,9 +78,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: "jwt",
     maxAge: 24 * 60 * 60, // 24 hours
   },
-  jwt: {
-    maxAge: 24 * 60 * 60, // 24 hours
-  },
   cookies: {
     sessionToken: {
       name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
@@ -102,5 +110,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
       };
     }
-  }
+  },
+  trustHost: true,
+  // Configuración adicional para Railway
+  debug: process.env.NODE_ENV === 'development',
 })

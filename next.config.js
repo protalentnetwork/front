@@ -28,6 +28,37 @@ const nextConfig = {
     ]
     return config
   },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains'
+          },
+        ],
+      },
+    ]
+  },
+  experimental: {
+    // Configuración correcta de serverActions
+    serverActions: {
+      enabled: true
+    }
+  },
+  // Asegurarse de que las imágenes y otros recursos se sirvan correctamente
+  images: {
+    domains: ['backoffice-casino-front-production.up.railway.app'],
+  },
 }
 
 module.exports = nextConfig
