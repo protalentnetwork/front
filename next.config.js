@@ -12,11 +12,6 @@ const nextConfig = {
         source: '/api/users/:path*',
         destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/:path*`,
       },
-      // Auth routes
-      {
-        source: '/api/auth/:path*',
-        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/:path*`,
-      },
       // Transactions routes
       {
         source: '/api/transactions/:path*',

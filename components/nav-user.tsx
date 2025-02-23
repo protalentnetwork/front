@@ -25,6 +25,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useRouter } from "next/navigation"
+import { signOut } from "next-auth/react"
+import { toast } from "sonner"
 
 export function NavUser({
   user,
@@ -37,9 +39,16 @@ export function NavUser({
   const { isMobile } = useSidebar()
   const router = useRouter()
 
-  const handleLogout = () => {
-    // Aquí irá la lógica de logout cuando la implementes
-    router.push('/login')
+  const handleLogout = async () => {
+    try {
+      await signOut({ redirect: false });
+      toast.success('Sesión cerrada correctamente');
+      router.push('/auth/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      toast.error('Error al cerrar sesión');
+    }
   }
 
   return (

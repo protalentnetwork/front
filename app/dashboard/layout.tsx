@@ -1,3 +1,5 @@
+'use client'
+
 import { BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { BreadcrumbItem, BreadcrumbList } from "@/components/ui/breadcrumb";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -6,9 +8,27 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { ModeToggle } from "@/components/mode-toggle";
+import { useAuth } from '@/hooks/useAuth'
 
+export default function DashboardLayout({
+    children,
+}: {
+    children: React.ReactNode
+}) {
+    const { isLoading, isAuthenticated } = useAuth(true) // true porque requiere autenticación
 
-export default function layout({ children }: { children: React.ReactNode }) {
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                Cargando...
+            </div>
+        )
+    }
+
+    if (!isAuthenticated) {
+        return null // El hook se encargará de la redirección
+    }
+
     return (
         <SidebarProvider>
             <AppSidebar />
