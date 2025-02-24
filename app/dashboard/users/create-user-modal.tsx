@@ -27,6 +27,7 @@ export function CreateUserModal({ onUserCreated }: { onUserCreated?: () => void 
     const [role, setRole] = useState("")
     const [office, setOffice] = useState("")
     const [isOpen, setIsOpen] = useState(false)
+    const [email, setEmail] = useState("")
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -43,7 +44,7 @@ export function CreateUserModal({ onUserCreated }: { onUserCreated?: () => void 
                     password,
                     role,
                     office,
-                    email: `${username}@example.com`,
+                    email
                 }),
             })
 
@@ -53,6 +54,7 @@ export function CreateUserModal({ onUserCreated }: { onUserCreated?: () => void 
                 setPassword("")
                 setRole("")
                 setOffice("")
+                setEmail("")
                 toast.success("Usuario creado correctamente")
                 if (onUserCreated) onUserCreated()
             } else {
@@ -105,6 +107,16 @@ export function CreateUserModal({ onUserCreated }: { onUserCreated?: () => void 
                     </div>
 
                     <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                            id="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="Ingrese el email"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
                         <Label htmlFor="role">Rol</Label>
                         <Select value={role} onValueChange={setRole}>
                             <SelectTrigger>
@@ -112,8 +124,8 @@ export function CreateUserModal({ onUserCreated }: { onUserCreated?: () => void 
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="operator">Operador</SelectItem>
-                                <SelectItem value="manager">Encargado</SelectItem>
+                                <SelectItem value="operador">Operador</SelectItem>
+                                <SelectItem value="encargado">Encargado</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
