@@ -182,7 +182,7 @@ const ReportsDashboard = () => {
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen">
-            <h1 className="text-2xl font-bold mb-6">Dashboard de Reportes</h1>
+            <h1 className="text-2xl font-bold mb-6"></h1>
 
             {/* Tarjetas de resumen */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
