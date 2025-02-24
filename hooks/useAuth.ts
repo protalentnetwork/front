@@ -8,18 +8,19 @@ export function useAuth(requireAuth = true) {
 
   useEffect(() => {
     if (requireAuth && status === 'unauthenticated') {
-      // Si requiere auth y no está autenticado, redirigir a login
       router.push('/auth/login');
     } else if (!requireAuth && status === 'authenticated') {
-      // Si no requiere auth (como la página de login) y está autenticado, redirigir a dashboard
       router.push('/dashboard');
     }
   }, [status, requireAuth, router]);
 
   return {
     user: session?.user,
+    role: session?.user?.role,
     isAdmin: session?.user?.role === 'admin',
+    isManager: session?.user?.role === 'manager',
+    isOperator: session?.user?.role === 'operator',
     isLoading: status === 'loading',
     isAuthenticated: status === 'authenticated'
   };
-} 
+}
