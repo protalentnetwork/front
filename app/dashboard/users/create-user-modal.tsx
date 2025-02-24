@@ -19,11 +19,13 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
 
-export function CreateUserModal() {
+export function CreateUserModal({ onUserCreated }: { onUserCreated?: () => void }) {
     const [username, setUsername] = useState("")
     const [password, setPassword] = useState("")
     const [role, setRole] = useState("")
+    const [office, setOffice] = useState("")
     const [isOpen, setIsOpen] = useState(false)
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -38,15 +40,31 @@ export function CreateUserModal() {
                     username,
                     password,
                     role,
+                    office,
+                    email: `${username}@example.com`, // Email ficticio
                 }),
             })
 
             if (response.ok) {
                 setIsOpen(false)
-                // Aquí podrías agregar una función para refrescar la lista de usuarios
+                setUsername("")
+                setPassword("")
+                setRole("")
+                setOffice("")
+                toast.success("Usuario creado correctamente")
+                if (onUserCreated) onUserCreated()
+            } else {
+                const errorData = await response.json()
+                throw new Error(errorData.message || "Error al crear el usuario")
             }
-        } catch (error) {
+        } catch (error: unknown) { // Tipamos error como unknown explícitamente
             console.error('Error creating user:', error)
+            // Verificamos si error es de tipo Error para acceder a message
+            if (error instanceof Error) {
+                toast.error(error.message || "No se pudo crear el usuario")
+            } else {
+                toast.error("No se pudo crear el usuario")
+            }
         }
     }
 
@@ -92,10 +110,20 @@ export function CreateUserModal() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="user">Operador</SelectItem>
-                                <SelectItem value="user">Encargado</SelectItem>
+                                <SelectItem value="operator">Operador</SelectItem>
+                                <SelectItem value="manager">Encargado</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="office">Oficina</Label>
+                        <Input
+                            id="office"
+                            value={office}
+                            onChange={(e) => setOffice(e.target.value)}
+                            placeholder="Ingrese la oficina"
+                        />
                     </div>
 
                     <div className="flex justify-end space-x-2 pt-4">
