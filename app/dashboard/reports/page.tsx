@@ -1,8 +1,13 @@
+'use client'
 
-export default function page() {
+import ReportsDashboard from "@/app/report/report"
+
+
+export default function Page() {
   return (
-    <div>
-        <h1>Reports</h1>
+    <div className="container mx-auto">
+      <h1 className="text-2xl font-bold mb-4"></h1>
+      <ReportsDashboard />
     </div>
   )
 }
