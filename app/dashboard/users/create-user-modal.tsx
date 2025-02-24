@@ -31,7 +31,9 @@ export function CreateUserModal({ onUserCreated }: { onUserCreated?: () => void 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users`, {
+            const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users`
+            console.log('Creating user at URL:', url, { username, role, office }, 'Time:', new Date().toISOString())
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -41,7 +43,7 @@ export function CreateUserModal({ onUserCreated }: { onUserCreated?: () => void 
                     password,
                     role,
                     office,
-                    email: `${username}@example.com`, // Email ficticio
+                    email: `${username}@example.com`,
                 }),
             })
 
@@ -55,11 +57,11 @@ export function CreateUserModal({ onUserCreated }: { onUserCreated?: () => void 
                 if (onUserCreated) onUserCreated()
             } else {
                 const errorData = await response.json()
+                console.error('Error creating user:', errorData)
                 throw new Error(errorData.message || "Error al crear el usuario")
             }
-        } catch (error: unknown) { // Tipamos error como unknown explícitamente
+        } catch (error: unknown) {
             console.error('Error creating user:', error)
-            // Verificamos si error es de tipo Error para acceder a message
             if (error instanceof Error) {
                 toast.error(error.message || "No se pudo crear el usuario")
             } else {

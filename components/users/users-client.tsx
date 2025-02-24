@@ -6,33 +6,35 @@ import { UsersFilters } from "./users-filters"
 import { User } from "@/types/user"
 import { CreateUserModal } from "@/app/dashboard/users/create-user-modal"
 
-
 interface UsersClientProps {
   initialUsers: User[]
 }
 
 export function UsersClient({ initialUsers }: UsersClientProps) {
+  console.log('Client initial users:', initialUsers, 'Time:', new Date().toISOString())
   const [filteredUsers, setFilteredUsers] = useState(initialUsers)
-  const [users, setUsers] = useState(initialUsers) // Estado para la lista completa
+  const [users, setUsers] = useState(initialUsers)
 
-  // Función para refrescar la lista desde el backend
   const refreshUsers = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users`)
+      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users`
+      console.log('Client refreshing users from URL:', url, 'Time:', new Date().toISOString())
+      const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
-        setUsers(data) // Actualizamos la lista completa
-        setFilteredUsers(data) // Actualizamos la lista filtrada
+        console.log('Client refreshed users:', data)
+        setUsers(data)
+        setFilteredUsers(data)
       } else {
-        console.error("Error fetching users")
+        console.error("Client error fetching users:", response.status, response.statusText)
       }
     } catch (error) {
-      console.error("Error fetching users:", error)
+      console.error("Client error fetching users:", error)
     }
   }
 
   const handleFilterChange = (field: string, value: string) => {
-    let filtered = [...users] // Usamos la lista completa como base
+    let filtered = [...users]
 
     if (value && value !== 'all') {
       filtered = filtered.filter(user => {
