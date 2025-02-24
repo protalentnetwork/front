@@ -92,7 +92,8 @@ export function CreateUserModal() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="user">Usuario</SelectItem>
+                                <SelectItem value="user">Operador</SelectItem>
+                                <SelectItem value="user">Encargado</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
