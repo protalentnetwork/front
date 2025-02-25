@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Send, Loader2, Paperclip } from 'lucide-react';
@@ -32,41 +32,22 @@ export default function ChatInput({ chatId, agentId, socket }: ChatInputProps) {
         return () => textarea.removeEventListener('input', adjustHeight);
     }, []);
 
-    const handleSendMessage = useCallback(async () => {
-        if (!input.trim() || !chatId || isSending) return;
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!input.trim() || isSending) return;
 
+        setIsSending(true);
         try {
-            setIsSending(true);
-
-            // Emit socket event
-            socket.emit('message', {
-                userId: chatId,
-                agentId: agentId,
-                message: input.trim()
-            });
-
-            // Send HTTP request
-            try {
-                const response = await fetch('https://backoffice-casino-back-production.up.railway.app/chat/send-agent-message', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        userId: chatId,
-                        agentId: agentId,
-                        message: input.trim()
-                    }),
-                });
-
-                if (!response.ok) {
-                    throw new Error('Error al enviar el mensaje');
-                }
-            } catch (error) {
-                console.error('Error al enviar mensaje por HTTP:', error);
-                toast.error('Error al enviar el mensaje');
-                return; // Don't clear input if message wasn't sent
+            if (!socket || !socket.connected) {
+                throw new Error('No hay conexión con el servidor');
             }
+
+            socket.emit('sendMessage', {
+                chatId,
+                message: input.trim(),
+                sender: 'agent',
+                agentId
+            });
 
             setInput('');
             if (textareaRef.current) {
@@ -74,16 +55,20 @@ export default function ChatInput({ chatId, agentId, socket }: ChatInputProps) {
             }
         } catch (error) {
             console.error('Error al enviar mensaje:', error);
-            toast.error('Error al enviar el mensaje');
+            
+            // Usamos setTimeout para evitar problemas de actualización de estado
+            setTimeout(() => {
+                toast.error('Error al enviar el mensaje');
+            }, 100);
         } finally {
             setIsSending(false);
         }
-    }, [input, chatId, agentId, socket]);
+    };
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            handleSendMessage();
+            handleSendMessage(e as unknown as React.FormEvent);
         }
     };
 

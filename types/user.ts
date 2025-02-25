@@ -5,5 +5,6 @@ export interface User {
   office: string
   status: string
   receivesWithdrawals: boolean
+  withdrawal?: string
   createdAt: Date
 } 

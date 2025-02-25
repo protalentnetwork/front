@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { User } from "@/types/user"
 import {
   Dialog,
@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,34 +21,98 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { Loader2 } from "lucide-react"
+
+// Definimos los enums según el backend
+enum UserStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+}
+
+// Roles disponibles en el sistema
+const AVAILABLE_ROLES = [
+  { value: "admin", label: "Admin" },
+  { value: "operador", label: "Operador" },
+  { value: "encargado", label: "Encargado" }
+]
+
+// Oficinas disponibles en el sistema
+const AVAILABLE_OFFICES = [
+  { value: "central", label: "Central" },
+  { value: "sucursal a", label: "Sucursal A" }
+]
 
 interface EditUserModalProps {
   user: User
   isOpen: boolean
   onClose: () => void
-  onSave: (updatedUser: Partial<User>) => void
+  onSave: (updatedUser: Partial<User> & { isActive?: boolean }) => Promise<void>
+  isLoading?: boolean
 }
 
-export function EditUserModal({ user, isOpen, onClose, onSave }: EditUserModalProps) {
-  const [formData, setFormData] = useState({
-    password: "",
-    isActive: user.status === "active",
-    receivesWithdrawals: user.receivesWithdrawals,
-    role: user.role,
-    office: user.office,
-  })
+interface UserFormData {
+  isActive: boolean
+  receivesWithdrawals: boolean
+  role: string
+  office: string
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
+export function EditUserModal({ user, isOpen, onClose, onSave, isLoading = false }: EditUserModalProps) {
+  // Inicializar el estado con valores por defecto
+  const [formData, setFormData] = useState<UserFormData>(() => ({
+    isActive: user?.status === UserStatus.ACTIVE,
+    receivesWithdrawals: user?.receivesWithdrawals || false,
+    role: user?.role || "",
+    office: user?.office || "",
+  }))
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Update form data when user changes
+  useEffect(() => {
+    if (isOpen && user) {
+      setFormData({
+        isActive: user.status === UserStatus.ACTIVE,
+        receivesWithdrawals: user.receivesWithdrawals,
+        role: user.role,
+        office: user.office,
+      })
+      setIsSaving(false)
+    }
+  }, [user, isOpen])
+
+  // Update local loading state when parent loading state changes
+  useEffect(() => {
+    setIsSaving(isLoading)
+  }, [isLoading])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onSave(formData)
-    onClose()
+    setIsSaving(true)
+    try {
+      await onSave(formData)
+      // No cerramos el modal aquí, dejamos que el componente padre lo haga después de actualizar
+    } catch (error) {
+      console.error("Error al guardar usuario:", error)
+      setIsSaving(false)
+    }
   }
 
+  // Prevenir renderizado si no hay usuario
+  if (!user) return null
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      // Solo permitir cerrar el modal si no está en proceso de guardado
+      if (!isSaving && !open) {
+        onClose()
+      }
+    }}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">Editar Usuario</DialogTitle>
+          <DialogDescription>
+            Modifica los datos del usuario {user.username}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
@@ -71,23 +136,12 @@ export function EditUserModal({ user, isOpen, onClose, onSave }: EditUserModalPr
 
             {/* Campos editables */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="password" className="text-right">Contraseña</Label>
-              <Input
-                id="password"
-                type="password"
-                className="col-span-3"
-                placeholder="Nueva contraseña"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Estado</Label>
               <div className="flex items-center gap-2">
                 <Switch
                   checked={formData.isActive}
                   onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                  disabled={isSaving}
                 />
                 <span>{formData.isActive ? 'Activo' : 'Inactivo'}</span>
               </div>
@@ -101,8 +155,9 @@ export function EditUserModal({ user, isOpen, onClose, onSave }: EditUserModalPr
                   onCheckedChange={(checked) => 
                     setFormData({ ...formData, receivesWithdrawals: checked })
                   }
+                  disabled={isSaving}
                 />
-                <span>{formData.receivesWithdrawals ? 'Recibe' : 'No recibe'}</span>
+                <span>{formData.receivesWithdrawals ? 'Habilitado' : 'Deshabilitado'}</span>
               </div>
             </div>
 
@@ -111,13 +166,17 @@ export function EditUserModal({ user, isOpen, onClose, onSave }: EditUserModalPr
               <Select
                 value={formData.role}
                 onValueChange={(value) => setFormData({ ...formData, role: value })}
+                disabled={isSaving}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="administrador">Administrador</SelectItem>
-                  <SelectItem value="usuario">Usuario</SelectItem>
+                  {AVAILABLE_ROLES.map(role => (
+                    <SelectItem key={role.value} value={role.value}>
+                      {role.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -127,22 +186,35 @@ export function EditUserModal({ user, isOpen, onClose, onSave }: EditUserModalPr
               <Select
                 value={formData.office}
                 onValueChange={(value) => setFormData({ ...formData, office: value })}
+                disabled={isSaving}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="central">Central</SelectItem>
-                  <SelectItem value="sucursal a">Sucursal A</SelectItem>
+                  {AVAILABLE_OFFICES.map(office => (
+                    <SelectItem key={office.value} value={office.value}>
+                      {office.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>
               Cerrar
             </Button>
-            <Button type="submit">Guardar Cambios</Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                'Guardar Cambios'
+              )}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

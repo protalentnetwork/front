@@ -1,10 +1,11 @@
 "use client"
 
 import * as React from "react"
+import { useMemo } from "react"
 import {
-  Bot,
-  Frame,
-  NotebookTabs,
+  CircleHelp,
+  Landmark,
+  MessagesSquare,
   PieChart,
   Ticket,
   Users,
@@ -19,125 +20,128 @@ import {
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/hooks/useAuth" // Ajusta la ruta según donde tengas useAuth
 
+// Datos estáticos del sidebar fuera del componente
+const navMainItems = [
+  {
+    title: "Usuarios",
+    url: "/dashboard/users",
+    icon: Users,
+    isActive: true,
+  },
+  {
+    title: "Cuentas para transferencias",
+    url: "/dashboard/transfer-accounts",
+    icon: Landmark,
+  },
+];
+
+const reportsItems = [
+  {
+    name: "Reportes",
+    url: "/dashboard/reports",
+    icon: PieChart,
+  },
+];
+
+const ticketsItems = [
+  {
+    name: "Tickets",
+    url: "/dashboard/tickets",
+    icon: Ticket,
+  },
+  {
+    name: "Chat con clientes",
+    url: "/dashboard/chat",
+    icon: MessagesSquare,
+  },
+];
+
+const projectsItems = [
+  {
+    name: "Monitoreo landing web",
+    url: "/dashboard/web-monitoring",
+    icon: CircleHelp,
+  },
+  {
+    name: "Monitoreo de transferencias",
+    url: "/dashboard/transfer-monitoring",
+    icon: CircleHelp,
+  },
+];
+
+const othersItems = [
+  {
+    name: "Recupero por WhatsApp",
+    url: "/dashboard/whatsapp-recovery",
+    icon: CircleHelp,
+  },
+  {
+    name: "Configuración oficina",
+    url: "/dashboard/office-configuration",
+    icon: CircleHelp,
+  },
+  {
+    name: "Descarga de cuentas",
+    url: "/dashboard/download-accounts",
+    icon: CircleHelp,
+  },
+  {
+    name: "Historial landing web",
+    url: "/dashboard/landing-history",
+    icon: CircleHelp,
+  },
+];
+
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, role, isOperator } = useAuth()
+  const { user, isOperator } = useAuth()
 
-  // Datos base del sidebar
-  const data = {
-    user: {
-      name: user?.name || "Usuario", // Usamos datos del usuario autenticado
-      email: user?.email || "email@example.com",
-    },
-    navMain: [
-      {
-        title: "Users",
-        url: "/dashboard/users",
-        icon: Users,
-        isActive: true,
-        items: [
-          {
-            title: "Usuarios de clientes",
-            url: "/dashboard/users/clients-users",
-          },
-        ],
-      },
-      {
-        title: "Cuentas para transferencias",
-        url: "/dashboard/transfer-accounts",
-        icon: Bot,
-      },
-      {
-        title: "Reportes",
-        url: "/dashboard/reports",
-        icon: NotebookTabs,
-        items: [
-          {
-            title: "Reportes gráficos",
-            url: "/dashboard/reports/graphic-reports",
-          },
-          {
-            title: "Reportes detalles",
-            url: "/dashboard/reports/details-reports",
-          },
-          {
-            title: "Reportes de cuentas",
-            url: "/dashboard/reports/accounts-reports",
-          },
-          {
-            title: "Reportes de operadores",
-            url: "/dashboard/reports/operators-reports",
-          },
-        ],
-      },
-    ],
-    tickets: [
-      {
-        name: "Tickets",
-        url: "/dashboard/tickets",
-        icon: Ticket,
-      },
-    ],
-    projects: [
-      {
-        name: "Monitoreo landing web",
-        url: "/dashboard/web-monitoring",
-        icon: Frame,
-      },
-      {
-        name: "Monitoreo de transferencias",
-        url: "/dashboard/transfer-monitoring",
-        icon: PieChart,
-      },
-    ],
-    others: [
-      {
-        name: "Recupero por WhatsApp",
-        url: "/dashboard/whatsapp-recovery",
-        icon: PieChart,
-      },
-      {
-        name: "Chat con clientes",
-        url: "/dashboard/chat",
-        icon: PieChart,
-      },
-      {
-        name: "Configuración oficina",
-        url: "/dashboard/office-configuration",
-        icon: PieChart,
-      },
-      {
-        name: "Descarga de cuentas",
-        url: "/dashboard/download-accounts",
-        icon: PieChart,
-      },
-      {
-        name: "Historial landing web",
-        url: "/dashboard/landing-history",
-        icon: PieChart,
-      },
-    ],
-  }
+  const userData = useMemo(() => ({
+    name: user?.name,
+    email: user?.email
+  }), [user?.name, user?.email]);
 
-  // Filtrar los ítems según el rol
-  const filteredNavMain = data.navMain.filter(item => {
+  const filteredItems = useMemo(() => {
     if (isOperator) {
-      // Ocultar "Users" y "Cuentas para transferencias" para operadores
-      return item.title !== "Users" && item.title !== "Cuentas para transferencias"
+      return {
+        navMain: [],
+        reports: [],
+        tickets: ticketsItems,
+        projects: [],
+        others: []
+      };
     }
-    // Admin y Manager ven todo
-    return true
-  })
+    
+    return {
+      navMain: navMainItems,
+      reports: reportsItems,
+      tickets: ticketsItems,
+      projects: projectsItems,
+      others: othersItems
+    };
+  }, [isOperator]);
 
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarContent>
-        <NavMain items={filteredNavMain} />
-        <NavProjects projects={data.projects} title="Monitoreos" />
-        <NavProjects projects={data.tickets} title="Tickets" />
-        <NavProjects projects={data.others} title="Otros" />
+        {filteredItems.navMain.length > 0 && (
+          <NavMain items={filteredItems.navMain} />
+        )}
+        {filteredItems.reports.length > 0 && (
+          <NavProjects projects={filteredItems.reports} title="Reportes" />
+        )}
+        {filteredItems.tickets.length > 0 && (
+          <NavProjects projects={filteredItems.tickets} title="Tickets" />
+        )}
+        {filteredItems.projects.length > 0 && (
+          <NavProjects projects={filteredItems.projects} title="Monitoreos" />
+        )}
+        {filteredItems.others.length > 0 && (
+          <NavProjects projects={filteredItems.others} title="Otros" />
+        )}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={userData as { name: string; email: string }} />
       </SidebarFooter>
     </Sidebar>
   )

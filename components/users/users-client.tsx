@@ -11,18 +11,15 @@ interface UsersClientProps {
 }
 
 export function UsersClient({ initialUsers }: UsersClientProps) {
-  console.log('Client initial users:', initialUsers, 'Time:', new Date().toISOString())
   const [filteredUsers, setFilteredUsers] = useState(initialUsers)
   const [users, setUsers] = useState(initialUsers)
 
   const refreshUsers = async () => {
     try {
       const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users`
-      console.log('Client refreshing users from URL:', url, 'Time:', new Date().toISOString())
       const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
-        console.log('Client refreshed users:', data)
         setUsers(data)
         setFilteredUsers(data)
       } else {
@@ -30,6 +27,37 @@ export function UsersClient({ initialUsers }: UsersClientProps) {
       }
     } catch (error) {
       console.error("Client error fetching users:", error)
+    }
+  }
+
+  const updateUser = async (userId: string, userData: Partial<User>) => {
+    try {
+      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${userId}`
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      })
+
+      if (response.ok) {
+        const updatedUser = await response.json()
+        // Update the local state with the updated user
+        setUsers(prevUsers => 
+          prevUsers.map(user => user.id === userId ? { ...user, ...updatedUser } : user)
+        )
+        setFilteredUsers(prevFiltered => 
+          prevFiltered.map(user => user.id === userId ? { ...user, ...updatedUser } : user)
+        )
+        return updatedUser
+      } else {
+        console.error("Error updating user:", response.status, response.statusText)
+        throw new Error(`Error updating user: ${response.statusText}`)
+      }
+    } catch (error) {
+      console.error("Error updating user:", error)
+      throw error
     }
   }
 
@@ -63,7 +91,11 @@ export function UsersClient({ initialUsers }: UsersClientProps) {
         <CreateUserModal onUserCreated={refreshUsers} />
       </div>
       <UsersFilters onFilterChange={handleFilterChange} users={users} />
-      <UsersTable users={filteredUsers} />
+      <UsersTable 
+        users={filteredUsers} 
+        onUpdateUser={updateUser} 
+        onRefreshUsers={refreshUsers}
+      />
     </>
   )
 }

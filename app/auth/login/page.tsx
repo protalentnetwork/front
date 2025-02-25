@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { signInSchema } from '@/lib/zod'
 import { useAuth } from '@/hooks/useAuth'
 
 interface FormData {
@@ -30,51 +29,38 @@ export default function LoginPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
-    // Limpiar error cuando el usuario empieza a escribir
     setError(null)
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError(null)
-
-    // Validar formulario usando safeParse
-    const validationResult = signInSchema.safeParse(formData)
-    
-    if (!validationResult.success) {
-      setError('Por favor, complete todos los campos correctamente')
-      setIsLoading(false)
-      return
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
 
     try {
-      const result = await signIn("credentials", {
-        email: formData.email,
+      const response = await signIn('credentials', {
+        redirect: false,
+        username: formData.email,
         password: formData.password,
-        redirect: false
       });
 
-      if (!result) {
-        throw new Error('Error de autenticación');
-      }
-
-      if (result.error) {
+      if (response?.error) {
         setError('Credenciales inválidas');
         return;
       }
 
-      toast.success('Inicio de sesión exitoso');
+      setTimeout(() => {
+        toast.success('Inicio de sesión exitoso');
+      }, 100);
+      
       router.push('/dashboard');
-      router.refresh();
-
     } catch (error) {
-      console.error('Login error:', error)
-      setError('Error al intentar iniciar sesión');
+      console.error('Error de inicio de sesión:', error);
+      setError('Error al iniciar sesión');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (isSessionLoading) {
     return (

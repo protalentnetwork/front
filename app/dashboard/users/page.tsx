@@ -2,7 +2,6 @@ import { UsersClient } from "@/components/users/users-client"
 
 const fetchUsers = async () => {
   const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users`
-  console.log('Server fetching users from URL:', url, 'Time:', new Date().toISOString())
   const response = await fetch(url, {
     cache: 'no-store', // Evitar caché
   })
@@ -11,7 +10,6 @@ const fetchUsers = async () => {
     return []
   }
   const data = await response.json()
-  console.log('Server fetched users:', data)
   return data
 }
 

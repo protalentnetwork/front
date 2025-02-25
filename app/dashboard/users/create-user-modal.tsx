@@ -33,7 +33,6 @@ export function CreateUserModal({ onUserCreated }: { onUserCreated?: () => void 
         e.preventDefault()
         try {
             const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users`
-            console.log('Creating user at URL:', url, { username, role, office }, 'Time:', new Date().toISOString())
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -55,7 +54,11 @@ export function CreateUserModal({ onUserCreated }: { onUserCreated?: () => void 
                 setRole("")
                 setOffice("")
                 setEmail("")
-                toast.success("Usuario creado correctamente")
+                
+                setTimeout(() => {
+                    toast.success("Usuario creado correctamente")
+                }, 100)
+                
                 if (onUserCreated) onUserCreated()
             } else {
                 const errorData = await response.json()
@@ -64,11 +67,14 @@ export function CreateUserModal({ onUserCreated }: { onUserCreated?: () => void 
             }
         } catch (error: unknown) {
             console.error('Error creating user:', error)
-            if (error instanceof Error) {
-                toast.error(error.message || "No se pudo crear el usuario")
-            } else {
-                toast.error("No se pudo crear el usuario")
-            }
+            
+            setTimeout(() => {
+                if (error instanceof Error) {
+                    toast.error(error.message || "No se pudo crear el usuario")
+                } else {
+                    toast.error("No se pudo crear el usuario")
+                }
+            }, 100)
         }
     }
 

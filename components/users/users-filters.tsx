@@ -22,7 +22,7 @@ export function UsersFilters({ onFilterChange, users }: UsersFiltersProps) {
     const getUniqueValues = (field: keyof User) => {
       let values = new Set<string>()
       if(users.length === 0){
-        values = new Set(users.map(user => user[field].toString().toLowerCase()))
+        values = new Set(users.map(user => user[field]?.toString().toLowerCase() ?? ''))
       }
       return Array.from(values).sort()
     }

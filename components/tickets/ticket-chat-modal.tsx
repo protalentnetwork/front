@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -83,7 +84,8 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId }: TicketChatM
       try {
         setIsLoading(true)
         setError(null)
-        const response = await fetch(`/zendesk/tickets/${ticketId}/comments`)
+        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL
+        const response = await fetch(`${baseUrl}/zendesk/tickets/${ticketId}/comments`)
         
         if (!response.ok) {
           throw new Error(`Error ${response.status}: ${response.statusText}`)
@@ -94,7 +96,9 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId }: TicketChatM
       } catch (error) {
         console.error('Error fetching comments:', error)
         setError('Error al cargar los mensajes. Por favor, intenta de nuevo.')
-        toast.error('Error al cargar los mensajes')
+        setTimeout(() => {
+          toast.error('Error al cargar los mensajes')
+        }, 100)
       } finally {
         setIsLoading(false)
       }
@@ -111,7 +115,8 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId }: TicketChatM
     try {
       setIsSending(true)
       setError(null)
-      const response = await fetch(`/zendesk/tickets/${ticketId}/comments`, {
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL
+      const response = await fetch(`${baseUrl}/zendesk/tickets/${ticketId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -129,7 +134,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId }: TicketChatM
       }
       
       // Actualizar la lista de comentarios
-      const updatedResponse = await fetch(`/zendesk/tickets/${ticketId}/comments`)
+      const updatedResponse = await fetch(`${baseUrl}/zendesk/tickets/${ticketId}/comments`)
       if (!updatedResponse.ok) {
         throw new Error('Error al actualizar los mensajes')
       }
@@ -137,11 +142,19 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId }: TicketChatM
       const updatedData: CommentsResponse = await updatedResponse.json()
       setComments(updatedData.comments)
       setNewMessage("")
-      toast.success('Mensaje enviado correctamente')
+      
+      // Usamos setTimeout para evitar problemas de actualización de estado
+      setTimeout(() => {
+        toast.success('Mensaje enviado correctamente')
+      }, 100)
     } catch (error) {
       console.error('Error sending message:', error)
       setError('Error al enviar el mensaje. Por favor, intenta de nuevo.')
-      toast.error('Error al enviar el mensaje')
+      
+      // Usamos setTimeout para evitar problemas de actualización de estado
+      setTimeout(() => {
+        toast.error('Error al enviar el mensaje')
+      }, 100)
     } finally {
       setIsSending(false)
     }
@@ -169,9 +182,9 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId }: TicketChatM
           <DialogTitle className="text-lg font-semibold">
             Chat con {user.name}
           </DialogTitle>
-          <div className="flex flex-col mt-1">
-            <span className="text-sm text-muted-foreground">{user.email}</span>
-          </div>
+          <DialogDescription className="text-sm text-muted-foreground">
+            {user.email}
+          </DialogDescription>
         </DialogHeader>
 
         {/* Chat Messages */}
@@ -216,10 +229,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId }: TicketChatM
         {/* Message Input */}
         <div className="border-t pt-4">
           <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleSendMessage()
-            }}
+            onSubmit={handleSendMessage}
             className="flex gap-2"
           >
             <Input

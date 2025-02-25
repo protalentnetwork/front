@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Toaster } from 'sonner';
 import ChatDashboard from './ChatDashboard';
 
 export default function ChatPage() {
@@ -11,7 +10,6 @@ export default function ChatPage() {
         <h1 className="text-2xl font-bold">Chats en Vivo</h1>
       </div>
       <ChatDashboard />
-      <Toaster richColors closeButton position="top-right" />
     </div>
   );
 }

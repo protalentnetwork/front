@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { Clock, Users, MessageSquare, Ticket, AlertCircle } from 'lucide-react';
-import { reportApi } from './services/report.api';
+import { reportApi, StatusDistribution, TicketsByAgent, TicketsTrend, MessageVolume, MessageDistribution, ResponseTimeByAgent, LoginActivity, UserRole, NewUsersByMonth, DashboardSummary } from './services/report.api';
 
 
 // Interfaces para los props de componentes
@@ -34,22 +34,27 @@ interface PieChartLabelProps {
     percent: number;
 }
 
+// Define un tipo genérico para los datos de gráficos
+type ChartData = StatusDistribution[] | TicketsByAgent[] | TicketsTrend[] | 
+                MessageVolume[] | MessageDistribution[] | ResponseTimeByAgent[] | 
+                LoginActivity[] | UserRole[] | NewUsersByMonth[];
+
 // Definición de colores para gráficos
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 // Pantalla principal de reportes
 const ReportsDashboard = () => {
     // Estados para almacenar datos
-    const [ticketStatusData, setTicketStatusData] = useState<{ name: string; value: number; }[] | null>(null);
-    const [ticketAgentData, setTicketAgentData] = useState<{ name: string; tickets: number; }[] | null>(null);
-    const [ticketTrendData, setTicketTrendData] = useState<{ mes: string; cantidad: number; }[] | null>(null);
-    const [messageVolumeData, setMessageVolumeData] = useState<{ hora: string; mensajes: number; }[] | null>(null);
-    const [messageDistributionData, setMessageDistributionData] = useState<{ name: string; value: number; }[] | null>(null);
-    const [responseTimeData, setResponseTimeData] = useState<{ name: string; tiempo: number; }[] | null>(null);
-    const [loginActivityData, setLoginActivityData] = useState<{ dia: string; logins: number; }[] | null>(null);
-    const [userRolesData, setUserRolesData] = useState<{ name: string; value: number; }[] | null>(null);
-    const [newUsersData, setNewUsersData] = useState<{ mes: string; cantidad: number; }[] | null>(null);
-    const [summaryData, setSummaryData] = useState<any | null>(null);
+    const [ticketStatusData, setTicketStatusData] = useState<StatusDistribution[] | null>(null);
+    const [ticketAgentData, setTicketAgentData] = useState<TicketsByAgent[] | null>(null);
+    const [ticketTrendData, setTicketTrendData] = useState<TicketsTrend[] | null>(null);
+    const [messageVolumeData, setMessageVolumeData] = useState<MessageVolume[] | null>(null);
+    const [messageDistributionData, setMessageDistributionData] = useState<MessageDistribution[] | null>(null);
+    const [responseTimeData, setResponseTimeData] = useState<ResponseTimeByAgent[] | null>(null);
+    const [loginActivityData, setLoginActivityData] = useState<LoginActivity[] | null>(null);
+    const [userRolesData, setUserRolesData] = useState<UserRole[] | null>(null);
+    const [newUsersData, setNewUsersData] = useState<NewUsersByMonth[] | null>(null);
+    const [summaryData, setSummaryData] = useState<DashboardSummary | null>(null);
 
     // Estados para manejo de errores y carga
     const [errors, setErrors] = useState<Record<string, string | null>>({});
@@ -57,7 +62,11 @@ const ReportsDashboard = () => {
     const [activeTab, setActiveTab] = useState('tickets');
 
     // Función para cargar datos de una manera segura
-    const fetchDataSafely = async (fetchFunction: () => Promise<any>, key: string, setter: React.Dispatch<React.SetStateAction<any>>) => {
+    const fetchDataSafely = async <T extends ChartData | DashboardSummary>(
+        fetchFunction: () => Promise<T>, 
+        key: string, 
+        setter: React.Dispatch<React.SetStateAction<T | null>>
+    ) => {
         try {
             const data = await fetchFunction();
 
@@ -146,10 +155,10 @@ const ReportsDashboard = () => {
     }, []);
 
     // Función para renderizar un gráfico de manera segura
-    const renderSafeChart = (
-        data: any | null,
+    const renderSafeChart = <T extends ChartData>(
+        data: T | null,
         errorKey: string,
-        renderFunction: (validData: any) => JSX.Element,
+        renderFunction: (validData: T) => React.ReactNode,
         emptyMessage: string = "No hay datos disponibles"
     ) => {
         if (errors[errorKey]) {
@@ -244,7 +253,7 @@ const ReportsDashboard = () => {
                                             fill="#8884d8"
                                             dataKey="value"
                                         >
-                                            {data.map((entry: any, index: number) => (
+                                            {data.map((entry: StatusDistribution, index: number) => (
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
@@ -362,7 +371,7 @@ const ReportsDashboard = () => {
                                             fill="#8884d8"
                                             dataKey="value"
                                         >
-                                            {data.map((entry: any, index: number) => (
+                                            {data.map((entry: MessageDistribution, index: number) => (
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
@@ -449,7 +458,7 @@ const ReportsDashboard = () => {
                                             fill="#8884d8"
                                             dataKey="value"
                                         >
-                                            {data.map((entry: any, index: number) => (
+                                            {data.map((entry: UserRole, index: number) => (
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>

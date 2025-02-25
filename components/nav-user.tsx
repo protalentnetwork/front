@@ -4,7 +4,6 @@ import {
   ChevronsUpDown,
   LogOut,
 } from "lucide-react"
-
 import {
   Avatar,
   AvatarFallback,
@@ -42,12 +41,21 @@ export function NavUser({
   const handleLogout = async () => {
     try {
       await signOut({ redirect: false });
-      toast.success('Sesión cerrada correctamente');
+
+      // Usamos setTimeout para evitar problemas de actualización de estado
+      setTimeout(() => {
+        toast.success('Sesión cerrada correctamente');
+      }, 100);
+
       router.push('/auth/login');
       router.refresh();
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
-      toast.error('Error al cerrar sesión');
+
+      // Usamos setTimeout para evitar problemas de actualización de estado
+      setTimeout(() => {
+        toast.error('Error al cerrar sesión');
+      }, 100);
     }
   }
 

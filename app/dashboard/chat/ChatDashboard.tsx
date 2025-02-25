@@ -39,7 +39,6 @@ const socket = io('https://backoffice-casino-back-production.up.railway.app', {
 });
 
 export default function ChatDashboard() {
-    // State
     const [activeChats, setActiveChats] = useState<ChatData[]>([]);
     const [selectedChat, setSelectedChat] = useState<string | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
@@ -49,7 +48,6 @@ export default function ChatDashboard() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const agentId = 'agent1'; // TODO: Get from auth context
 
-    // Scroll to bottom of messages
     const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, []);
@@ -58,25 +56,36 @@ export default function ChatDashboard() {
         scrollToBottom();
     }, [messages, scrollToBottom]);
 
-    // Socket event handlers
     useEffect(() => {
         function onConnect() {
             setIsConnected(true);
             setIsLoading(false);
             setError(null);
             socket.emit('joinAgent', { agentId });
-            toast.success('Conectado al servidor de chat');
+            
+            // Usamos setTimeout para evitar problemas de actualización de estado
+            setTimeout(() => {
+                toast.success('Conectado al servidor de chat');
+            }, 100);
         }
 
         function onDisconnect(reason: string) {
             setIsConnected(false);
-            toast.error(`Se perdió la conexión con el servidor: ${reason}`);
+            
+            // Usamos setTimeout para evitar problemas de actualización de estado
+            setTimeout(() => {
+                toast.error(`Se perdió la conexión con el servidor: ${reason}`);
+            }, 100);
         }
 
         function onConnectError(err: Error) {
             setError(`Error de conexión: ${err.message}`);
             setIsLoading(false);
-            toast.error(`Error de conexión: ${err.message}`);
+            
+            // Usamos setTimeout para evitar problemas de actualización de estado
+            setTimeout(() => {
+                toast.error(`Error de conexión: ${err.message}`);
+            }, 100);
         }
 
         function onActiveChats(chats: ChatData[]) {
@@ -125,7 +134,7 @@ export default function ChatDashboard() {
             socket.off('messageHistory', onMessageHistory);
             socket.off('newMessage', onNewMessage);
         };
-    }, [selectedChat, scrollToBottom]);
+    }, [selectedChat, scrollToBottom, agentId]);
 
     const selectChat = useCallback((userId: string) => {
         setSelectedChat(userId);
