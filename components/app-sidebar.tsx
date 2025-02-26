@@ -58,12 +58,12 @@ const ticketsItems = [
 
 const projectsItems = [
   {
-    name: "Monitoreo landing web",
+    name: "Monitoreo pendientes",
     url: "/dashboard/web-monitoring",
     icon: CircleHelp,
   },
   {
-    name: "Monitoreo de transferencias",
+    name: "Monitoreo de completados",
     url: "/dashboard/transfer-monitoring",
     icon: CircleHelp,
   },
@@ -111,7 +111,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         others: []
       };
     }
-    
+
     return {
       navMain: navMainItems,
       reports: reportsItems,
