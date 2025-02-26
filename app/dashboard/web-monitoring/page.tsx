@@ -7,35 +7,35 @@ interface Transaction {
   description: string;
   amount: number;
   status?: string;
-  dateCreated?: string;
-  dateApproved?: string;
-  dateLastUpdated?: string;
-  moneyReleaseDate?: string;
-  statusDetail?: string;
-  paymentMethodId?: string;
-  paymentTypeId?: string;
-  payerId?: number | string; // Ajuste para que coincida con el tipo en el backend
-  payerEmail?: string;
-  payerIdentification?: {
+  date_created?: string; // Usar el nombre exacto del backend (snake_case)
+  date_approved?: string;
+  date_last_updated?: string;
+  money_release_date?: string;
+  status_detail?: string;
+  payment_method_id?: string;
+  payment_type_id?: string;
+  payer_id?: string | number; // Ajustar para coincidir con el backend (string en este caso)
+  payer_email?: string;
+  payer_identification?: {
     type?: string;
     number?: string;
-  };
-  payerType?: string | null;
-  transactionDetails?: {
-    acquirerReference?: string | null;
-    bankTransferId?: number;
-    externalResourceUrl?: string | null;
-    financialInstitution?: string;
-    installmentAmount?: number;
-    netReceivedAmount?: number;
-    overpaidAmount?: number;
-    payableDeferralPeriod?: string | null;
-    paymentMethodReferenceId?: string | null;
-    totalPaidAmount?: number;
-    transactionId?: string;
-  };
-  additionalInfo?: {
-    trackingId?: string;
+  } | null;
+  payer_type?: string | null;
+  transaction_details?: {
+    acquirer_reference?: string | null;
+    bank_transfer_id?: number;
+    external_resource_url?: string | null;
+    financial_institution?: string;
+    installment_amount?: number;
+    net_received_amount?: number;
+    overpaid_amount?: number;
+    payable_deferral_period?: string | null;
+    payment_method_reference_id?: string | null;
+    total_paid_amount?: number;
+    transaction_id?: string;
+  } | null;
+  additional_info?: {
+    tracking_id?: string;
     items?: Array<{
       id?: string;
       title?: string;
@@ -44,23 +44,23 @@ interface Transaction {
       unit_price?: number;
     }>;
     payer?: {
-      registrationDate?: string;
+      registration_date?: string; // Corregir a snake_case
     };
     shipments?: {
-      receiverAddress?: {
-        streetName?: string;
-        streetNumber?: string;
-        zipCode?: string;
-        cityName?: string;
-        stateName?: string;
+      receiver_address?: {
+        street_name?: string;
+        street_number?: string;
+        zip_code?: string;
+        city_name?: string;
+        state_name?: string;
       };
     };
-  };
-  externalReference?: string | null;
-  feeDetails?: Array<{
+  } | null;
+  external_reference?: string | null;
+  fee_details?: Array<{
     type?: string;
     amount?: number;
-    feePayer?: string;
+    fee_payer?: string;
   }>;
 }
 
@@ -101,54 +101,54 @@ export default function Page() {
             <strong>ID de Pago:</strong> {transaction.id}<br />
             <strong>Descripción:</strong> {transaction.description}<br />
             <strong>Monto:</strong> ${transaction.amount.toFixed(2)}<br />
-            <strong>Estado:</strong> {transaction.status || 'Sin estado'} {transaction.statusDetail ? `(${transaction.statusDetail})` : ''}<br />
-            <strong>Fecha de Creación:</strong> {transaction.dateCreated ? new Date(transaction.dateCreated).toLocaleString() : 'No disponible'}<br />
-            <strong>Fecha de Aprobación:</strong> {transaction.dateApproved ? new Date(transaction.dateApproved).toLocaleString() : 'No disponible'}<br />
-            <strong>Fecha de Última Actualización:</strong> {transaction.dateLastUpdated ? new Date(transaction.dateLastUpdated).toLocaleString() : 'No disponible'}<br />
-            <strong>Fecha de Liberación de Fondos:</strong> {transaction.moneyReleaseDate ? new Date(transaction.moneyReleaseDate).toLocaleString() : 'No disponible'}<br />
-            <strong>Método de Pago:</strong> {transaction.paymentMethodId || 'No disponible'}<br />
-            <strong>Tipo de Pago:</strong> {transaction.paymentTypeId || 'No disponible'}<br />
-            <strong>ID del Pagador:</strong> {transaction.payerId || 'No disponible'}<br />
-            <strong>Email del Pagador:</strong> {transaction.payerEmail || 'No disponible'}<br />
-            <strong>Identificación del Pagador:</strong> {transaction.payerIdentification ? `${transaction.payerIdentification.type || ''} ${transaction.payerIdentification.number || ''}` : 'No disponible'}<br />
-            <strong>Tipo de Pagador:</strong> {transaction.payerType || 'No disponible'}<br />
-            {transaction.transactionDetails && (
+            <strong>Estado:</strong> {transaction.status || 'Sin estado'} {transaction.status_detail ? `(${transaction.status_detail})` : ''}<br />
+            <strong>Fecha de Creación:</strong> {transaction.date_created ? new Date(transaction.date_created).toLocaleString() : 'No disponible'}<br />
+            <strong>Fecha de Aprobación:</strong> {transaction.date_approved ? new Date(transaction.date_approved).toLocaleString() : 'No disponible'}<br />
+            <strong>Fecha de Última Actualización:</strong> {transaction.date_last_updated ? new Date(transaction.date_last_updated).toLocaleString() : 'No disponible'}<br />
+            <strong>Fecha de Liberación de Fondos:</strong> {transaction.money_release_date ? new Date(transaction.money_release_date).toLocaleString() : 'No disponible'}<br />
+            <strong>Método de Pago:</strong> {transaction.payment_method_id || 'No disponible'}<br />
+            <strong>Tipo de Pago:</strong> {transaction.payment_type_id || 'No disponible'}<br />
+            <strong>ID del Pagador:</strong> {transaction.payer_id || 'No disponible'}<br />
+            <strong>Email del Pagador:</strong> {transaction.payer_email || 'No disponible'}<br />
+            <strong>Identificación del Pagador:</strong> {transaction.payer_identification ? `${transaction.payer_identification.type || ''} ${transaction.payer_identification.number || ''}` : 'No disponible'}<br />
+            <strong>Tipo de Pagador:</strong> {transaction.payer_type || 'No disponible'}<br />
+            {transaction.transaction_details && (
               <>
-                <strong>Monto Neto Recibido:</strong> ${transaction.transactionDetails.netReceivedAmount?.toFixed(2) || 'No disponible'}<br />
-                <strong>Monto Total Pagado:</strong> ${transaction.transactionDetails.totalPaidAmount?.toFixed(2) || 'No disponible'}<br />
-                <strong>Monto Sobregirado:</strong> ${transaction.transactionDetails.overpaidAmount?.toFixed(2) || 'No disponible'}<br />
-                <strong>Monto por Cuota:</strong> ${transaction.transactionDetails.installmentAmount?.toFixed(2) || 'No disponible'}<br />
-                <strong>ID de Transferencia Bancaria:</strong> {transaction.transactionDetails.bankTransferId || 'No disponible'}<br />
-                <strong>Institución Financiera:</strong> {transaction.transactionDetails.financialInstitution || 'No disponible'}<br />
-                <strong>ID de Transacción:</strong> {transaction.transactionDetails.transactionId || 'No disponible'}<br />
+                <strong>Monto Neto Recibido:</strong> ${transaction.transaction_details.net_received_amount?.toFixed(2) || 'No disponible'}<br />
+                <strong>Monto Total Pagado:</strong> ${transaction.transaction_details.total_paid_amount?.toFixed(2) || 'No disponible'}<br />
+                <strong>Monto Sobregirado:</strong> ${transaction.transaction_details.overpaid_amount?.toFixed(2) || 'No disponible'}<br />
+                <strong>Monto por Cuota:</strong> ${transaction.transaction_details.installment_amount?.toFixed(2) || 'No disponible'}<br />
+                <strong>ID de Transferencia Bancaria:</strong> {transaction.transaction_details.bank_transfer_id || 'No disponible'}<br />
+                <strong>Institución Financiera:</strong> {transaction.transaction_details.financial_institution || 'No disponible'}<br />
+                <strong>ID de Transacción:</strong> {transaction.transaction_details.transaction_id || 'No disponible'}<br />
               </>
             )}
-            {transaction.additionalInfo?.items && transaction.additionalInfo.items.length > 0 && (
+            {transaction.additional_info?.items && transaction.additional_info.items.length > 0 && (
               <>
                 <strong>Ítems Comprados:</strong><br />
-                {transaction.additionalInfo.items.map((item, index) => (
+                {transaction.additional_info.items.map((item, index) => (
                   <div key={index}>
                     - {item.title} (Cantidad: {item.quantity}, Precio: ${item.unit_price?.toFixed(2)})
                   </div>
                 ))}
               </>
             )}
-           {transaction.additionalInfo?.trackingId && (
-  <>
-    <strong>ID de Seguimiento:</strong> {transaction.additionalInfo.trackingId}<br />
-  </>
-)}
-{transaction.externalReference && (
-  <>
-    <strong>Referencia Externa:</strong> {transaction.externalReference}<br />
-  </>
-)}
-            {transaction.feeDetails && transaction.feeDetails.length > 0 && (
+            {transaction.additional_info?.tracking_id && (
+              <>
+                <strong>ID de Seguimiento:</strong> {transaction.additional_info.tracking_id}<br />
+              </>
+            )}
+            {transaction.external_reference && (
+              <>
+                <strong>Referencia Externa:</strong> {transaction.external_reference}<br />
+              </>
+            )}
+            {transaction.fee_details && transaction.fee_details.length > 0 && (
               <>
                 <strong>Detalles de Comisiones:</strong><br />
-                {transaction.feeDetails.map((fee, index) => (
+                {transaction.fee_details.map((fee, index) => (
                   <div key={index}>
-                    - Tipo: {fee.type}, Monto: ${fee.amount?.toFixed(2)}, Pagador: {fee.feePayer}
+                    - Tipo: {fee.type}, Monto: ${fee.amount?.toFixed(2)}, Pagador: {fee.fee_payer}
                   </div>
                 ))}
               </>
