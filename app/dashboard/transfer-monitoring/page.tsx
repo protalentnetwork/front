@@ -4,28 +4,25 @@ import { useState, useEffect } from 'react';
 
 interface Transaction {
   id: string | number;
-  userType: string; // Tipo de usuario (por ejemplo, pagador)
+  userType: string;
   amount: number;
   description: string;
   status: string;
   dateCreated: string;
-  paymentMethod: string; // Método de pago (por ejemplo, transferencia bancaria)
-  email: string; // Email del usuario/pagador
+  paymentMethod: string;
+  email: string;
 }
 
 export default function Page() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Simular la obtención de datos del backend (puedes reemplazar esto con tu fetch real)
   useEffect(() => {
     setLoading(true);
-    // Simulación de datos (en lugar de fetch)
     const sampleData: Transaction[] = [
       {
         id: 103136605567,
-        userType: 'Cliente Regular', // Ejemplo basado en payer_type o payer_identification
+        userType: 'Cliente Regular',
         amount: 1,
         description: 'Bank Transfer',
         status: 'approved',
@@ -39,7 +36,6 @@ export default function Page() {
   }, []);
 
   if (loading) return <div>Cargando transferencias...</div>;
-  if (error) return <div>Error: {error}</div>;
 
   return (
     <div className="container mx-auto p-4">
