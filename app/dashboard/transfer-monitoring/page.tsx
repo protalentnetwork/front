@@ -4,38 +4,44 @@ import { useState, useEffect } from 'react';
 
 interface Transaction {
   id: string | number;
-  userType: string;
+  type: 'deposit' | 'withdraw';
   amount: number;
-  description: string;
-  status: string;
-  dateCreated: string;
-  paymentMethod: string;
-  email: string;
+  status?: 'Pending' | 'Aceptado' | 'approved' | string;
+  date_created?: string;
+  description?: string;
+  payment_method_id?: string;
+  payer_email?: string;
+  cbu?: string;
+  wallet_address?: string;
 }
 
 export default function Page() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
-    const sampleData: Transaction[] = [
-      {
-        id: 103136605567,
-        userType: 'Cliente Regular',
-        amount: 1,
-        description: 'Bank Transfer',
-        status: 'approved',
-        dateCreated: '2025-02-26T15:56:41.000-04:00',
-        paymentMethod: 'Transferencia Bancaria (CVU)',
-        email: 'sandra_fumagalli_liceo@yahoo.com.ar',
-      },
-    ];
-    setTransactions(sampleData);
-    setLoading(false);
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/transactions`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Error al obtener transacciones: ${response.status} - ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Datos recibidos del backend:', data);
+        setTransactions(data);
+      })
+      .catch(err => {
+        console.error('Error en el fetch:', err);
+        setError(err.message);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div>Cargando transferencias...</div>;
+  if (loading) return <div>Cargando transacciones...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div className="container mx-auto p-4">
@@ -43,35 +49,56 @@ export default function Page() {
       <table className="min-w-full bg-white border border-gray-300">
         <thead>
           <tr className="bg-gray-100">
-            <th className="py-2 px-4 border-b">ID de Pago</th>
-            <th className="py-2 px-4 border-b">Usuario</th>
+            <th className="py-2 px-4 border-b">ID</th>
+            <th className="py-2 px-4 border-b">Tipo</th>
             <th className="py-2 px-4 border-b">Monto</th>
             <th className="py-2 px-4 border-b">Descripción</th>
             <th className="py-2 px-4 border-b">Estado</th>
             <th className="py-2 px-4 border-b">Fecha de Creación</th>
-            <th className="py-2 px-4 border-b">Método de Pago</th>
-            <th className="py-2 px-4 border-b">Email</th>
+            <th className="py-2 px-4 border-b">Método/Cuenta</th>
+            <th className="py-2 px-4 border-b">Email/Cuenta Destino</th>
+            <th className="py-2 px-4 border-b">Acción</th>
           </tr>
         </thead>
         <tbody>
           {transactions.map((transaction) => (
             <tr key={transaction.id} className="hover:bg-gray-50">
               <td className="py-2 px-4 border-b">{transaction.id}</td>
-              <td className="py-2 px-4 border-b">{transaction.userType}</td>
+              <td className="py-2 px-4 border-b">{transaction.type === 'deposit' ? 'Depósito' : 'Retiro'}</td>
               <td className="py-2 px-4 border-b">${transaction.amount.toFixed(2)}</td>
-              <td className="py-2 px-4 border-b">{transaction.description}</td>
-              <td className="py-2 px-4 border-b">{transaction.status}</td>
+              <td className="py-2 px-4 border-b">{transaction.description || 'Sin descripción'}</td>
+              <td className="py-2 px-4 border-b">{transaction.status || 'Pending'}</td>
               <td className="py-2 px-4 border-b">
-                {new Date(transaction.dateCreated).toLocaleString()}
+                {transaction.date_created ? new Date(transaction.date_created).toLocaleString() : 'No disponible'}
               </td>
-              <td className="py-2 px-4 border-b">{transaction.paymentMethod}</td>
-              <td className="py-2 px-4 border-b">{transaction.email}</td>
+              <td className="py-2 px-4 border-b">{transaction.payment_method_id || transaction.cbu || 'No disponible'}</td>
+              <td className="py-2 px-4 border-b">{transaction.payer_email || transaction.wallet_address || 'No disponible'}</td>
+              <td className="py-2 px-4 border-b">
+                {transaction.status === 'Aceptado' ? (
+                  <span className="bg-green-500 text-white px-4 py-2 rounded">Aceptado</span>
+                ) : (
+                  <button
+                    onClick={() => handleAccept(transaction.id)}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    disabled={transaction.status === 'Aceptado'}
+                  >
+                    Pending
+                  </button>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
-      {transactions.length === 0 && <p className="mt-4">No hay transferencias disponibles</p>}
+      {transactions.length === 0 && <p className="mt-4">No hay transacciones disponibles</p>}
     </div>
   );
-}
 
+  function handleAccept(id: string | number) {
+    setTransactions(prevTransactions =>
+      prevTransactions.map(transaction =>
+        transaction.id === id ? { ...transaction, status: 'Aceptado' } : transaction
+      )
+    );
+  }
+}
