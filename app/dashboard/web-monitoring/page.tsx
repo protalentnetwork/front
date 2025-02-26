@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -7,11 +6,10 @@ interface Transaction {
   id: string | number;
   description: string;
   amount: number;
-  status?: string;
+  status?: string; // Puede ser 'approved', 'Pending', 'Aceptado', etc.
   date_created?: string;
   payment_method_id?: string;
   payer_email?: string;
-  buttonStatus?: 'Pending' | 'Aceptado'; // Nueva propiedad para el estado del botón
 }
 
 export default function Page() {
@@ -30,12 +28,7 @@ export default function Page() {
       })
       .then(data => {
         console.log('Datos recibidos del backend:', data);
-        // Agregar buttonStatus: "Pending" a cada transacción
-        const initializedData = data.map((transaction: Transaction) => ({
-          ...transaction,
-          buttonStatus: 'Pending' as const,
-        }));
-        setTransactions(initializedData);
+        setTransactions(data);
       })
       .catch(err => {
         console.error('Error en el fetch:', err);
@@ -43,15 +36,6 @@ export default function Page() {
       })
       .finally(() => setLoading(false));
   }, []);
-
-  // Función para cambiar el estado del botón a "Aceptado"
-  const handleAccept = (id: string | number) => {
-    setTransactions(prevTransactions =>
-      prevTransactions.map(transaction =>
-        transaction.id === id ? { ...transaction, buttonStatus: 'Aceptado' } : transaction
-      )
-    );
-  };
 
   if (loading) return <div>Cargando transacciones...</div>;
   if (error) return <div>Error: {error}</div>;
@@ -78,22 +62,23 @@ export default function Page() {
               <td className="py-2 px-4 border-b">{transaction.id}</td>
               <td className="py-2 px-4 border-b">{transaction.description}</td>
               <td className="py-2 px-4 border-b">${transaction.amount.toFixed(2)}</td>
-              <td className="py-2 px-4 border-b">{transaction.status || 'Sin estado'}</td>
+              <td className="py-2 px-4 border-b">{transaction.status || 'Pending'}</td>
               <td className="py-2 px-4 border-b">
                 {transaction.date_created ? new Date(transaction.date_created).toLocaleString() : 'No disponible'}
               </td>
               <td className="py-2 px-4 border-b">{transaction.payment_method_id || 'No disponible'}</td>
               <td className="py-2 px-4 border-b">{transaction.payer_email || 'No disponible'}</td>
               <td className="py-2 px-4 border-b">
-                {transaction.buttonStatus === 'Pending' ? (
+                {transaction.status === 'Aceptado' ? (
+                  <span className="bg-green-500 text-white px-4 py-2 rounded">Aceptado</span>
+                ) : (
                   <button
                     onClick={() => handleAccept(transaction.id)}
                     className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    disabled={transaction.status === 'Aceptado'}
                   >
                     Pending
                   </button>
-                ) : (
-                  <span className="bg-green-500 text-white px-4 py-2 rounded">Aceptado</span>
                 )}
               </td>
             </tr>
@@ -103,4 +88,12 @@ export default function Page() {
       {transactions.length === 0 && <p className="mt-4">No hay transacciones disponibles</p>}
     </div>
   );
+
+  function handleAccept(id: string | number) {
+    setTransactions(prevTransactions =>
+      prevTransactions.map(transaction =>
+        transaction.id === id ? { ...transaction, status: 'Aceptado' } : transaction
+      )
+    );
+  }
 }

@@ -44,7 +44,7 @@ export default function Page() {
         <thead>
           <tr className="bg-gray-100">
             <th className="py-2 px-4 border-b">ID de Pago</th>
-            <th className="py-2 px-4 border-b">Tipo de Usuario</th>
+            <th className="py-2 px-4 border-b">Usuario</th>
             <th className="py-2 px-4 border-b">Monto</th>
             <th className="py-2 px-4 border-b">Descripción</th>
             <th className="py-2 px-4 border-b">Estado</th>
