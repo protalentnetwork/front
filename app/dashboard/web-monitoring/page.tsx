@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 
 interface Transaction {
+  id: string | number;
   description: string;
   amount: number;
-  id?: number | string;
   status?: string;
+  dateCreated?: string;
 }
 
 export default function Page() {
@@ -18,11 +19,19 @@ export default function Page() {
     setLoading(true);
     fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/transactions`)
       .then(response => {
-        if (!response.ok) throw new Error('Error al obtener transacciones');
+        if (!response.ok) {
+          throw new Error(`Error al obtener transacciones: ${response.status} - ${response.statusText}`);
+        }
         return response.json();
       })
-      .then(data => setTransactions(data))
-      .catch(err => setError(err.message))
+      .then(data => {
+        console.log('Datos recibidos del backend:', data);
+        setTransactions(data);
+      })
+      .catch(err => {
+        console.error('Error en el fetch:', err);
+        setError(err.message);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -33,8 +42,10 @@ export default function Page() {
     <div>
       <h1>Monitoreo landing web</h1>
       <ul>
-        {transactions.map((transaction, index) => (
-          <li key={index}>{transaction.description} - ${transaction.amount}</li>
+        {transactions.map((transaction) => (
+          <li key={transaction.id}>
+            {transaction.description} - ${transaction.amount} (Estado: {transaction.status || 'Sin estado'})
+          </li>
         ))}
       </ul>
     </div>
