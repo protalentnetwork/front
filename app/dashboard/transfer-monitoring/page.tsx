@@ -7,61 +7,10 @@ interface Transaction {
   description: string;
   amount: number;
   status?: string;
-  date_created?: string; // Usar el nombre exacto del backend (snake_case)
-  date_approved?: string;
-  date_last_updated?: string;
-  money_release_date?: string;
-  status_detail?: string;
+  date_created?: string;
   payment_method_id?: string;
-  payment_type_id?: string;
-  payer_id?: string | number; // Ajustar para coincidir con el backend (string en este caso)
   payer_email?: string;
-  payer_identification?: {
-    type?: string;
-    number?: string;
-  } | null;
-  payer_type?: string | null;
-  transaction_details?: {
-    acquirer_reference?: string | null;
-    bank_transfer_id?: number;
-    external_resource_url?: string | null;
-    financial_institution?: string;
-    installment_amount?: number;
-    net_received_amount?: number;
-    overpaid_amount?: number;
-    payable_deferral_period?: string | null;
-    payment_method_reference_id?: string | null;
-    total_paid_amount?: number;
-    transaction_id?: string;
-  } | null;
-  additional_info?: {
-    tracking_id?: string;
-    items?: Array<{
-      id?: string;
-      title?: string;
-      description?: string;
-      quantity?: number;
-      unit_price?: number;
-    }>;
-    payer?: {
-      registration_date?: string; // Corregir a snake_case
-    };
-    shipments?: {
-      receiver_address?: {
-        street_name?: string;
-        street_number?: string;
-        zip_code?: string;
-        city_name?: string;
-        state_name?: string;
-      };
-    };
-  } | null;
-  external_reference?: string | null;
-  fee_details?: Array<{
-    type?: string;
-    amount?: number;
-    fee_payer?: string;
-  }>;
+  buttonStatus?: 'Pending' | 'Aceptado'; // Nueva propiedad para el estado del botón
 }
 
 export default function Page() {
@@ -80,7 +29,12 @@ export default function Page() {
       })
       .then(data => {
         console.log('Datos recibidos del backend:', data);
-        setTransactions(data);
+        // Agregar buttonStatus: "Pending" a cada transacción
+        const initializedData = data.map((transaction: Transaction) => ({
+          ...transaction,
+          buttonStatus: 'Pending' as const,
+        }));
+        setTransactions(initializedData);
       })
       .catch(err => {
         console.error('Error en el fetch:', err);
@@ -89,74 +43,63 @@ export default function Page() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Función para cambiar el estado del botón a "Aceptado"
+  const handleAccept = (id: string | number) => {
+    setTransactions(prevTransactions =>
+      prevTransactions.map(transaction =>
+        transaction.id === id ? { ...transaction, buttonStatus: 'Aceptado' } : transaction
+      )
+    );
+  };
+
   if (loading) return <div>Cargando transacciones...</div>;
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <div>
-      <h1>Monitoreo landing web</h1>
-      <ul>
-        {transactions.map((transaction) => (
-          <li key={transaction.id} style={{ margin: '10px 0', padding: '10px', border: '1px solid #ccc' }}>
-            <strong>ID de Pago:</strong> {transaction.id}<br />
-            <strong>Descripción:</strong> {transaction.description}<br />
-            <strong>Monto:</strong> ${transaction.amount.toFixed(2)}<br />
-            <strong>Estado:</strong> {transaction.status || 'Sin estado'} {transaction.status_detail ? `(${transaction.status_detail})` : ''}<br />
-            <strong>Fecha de Creación:</strong> {transaction.date_created ? new Date(transaction.date_created).toLocaleString() : 'No disponible'}<br />
-            <strong>Fecha de Aprobación:</strong> {transaction.date_approved ? new Date(transaction.date_approved).toLocaleString() : 'No disponible'}<br />
-            <strong>Fecha de Última Actualización:</strong> {transaction.date_last_updated ? new Date(transaction.date_last_updated).toLocaleString() : 'No disponible'}<br />
-            <strong>Fecha de Liberación de Fondos:</strong> {transaction.money_release_date ? new Date(transaction.money_release_date).toLocaleString() : 'No disponible'}<br />
-            <strong>Método de Pago:</strong> {transaction.payment_method_id || 'No disponible'}<br />
-            <strong>Tipo de Pago:</strong> {transaction.payment_type_id || 'No disponible'}<br />
-            <strong>ID del Pagador:</strong> {transaction.payer_id || 'No disponible'}<br />
-            <strong>Email del Pagador:</strong> {transaction.payer_email || 'No disponible'}<br />
-            <strong>Identificación del Pagador:</strong> {transaction.payer_identification ? `${transaction.payer_identification.type || ''} ${transaction.payer_identification.number || ''}` : 'No disponible'}<br />
-            <strong>Tipo de Pagador:</strong> {transaction.payer_type || 'No disponible'}<br />
-            {transaction.transaction_details && (
-              <>
-                <strong>Monto Neto Recibido:</strong> ${transaction.transaction_details.net_received_amount?.toFixed(2) || 'No disponible'}<br />
-                <strong>Monto Total Pagado:</strong> ${transaction.transaction_details.total_paid_amount?.toFixed(2) || 'No disponible'}<br />
-                <strong>Monto Sobregirado:</strong> ${transaction.transaction_details.overpaid_amount?.toFixed(2) || 'No disponible'}<br />
-                <strong>Monto por Cuota:</strong> ${transaction.transaction_details.installment_amount?.toFixed(2) || 'No disponible'}<br />
-                <strong>ID de Transferencia Bancaria:</strong> {transaction.transaction_details.bank_transfer_id || 'No disponible'}<br />
-                <strong>Institución Financiera:</strong> {transaction.transaction_details.financial_institution || 'No disponible'}<br />
-                <strong>ID de Transacción:</strong> {transaction.transaction_details.transaction_id || 'No disponible'}<br />
-              </>
-            )}
-            {transaction.additional_info?.items && transaction.additional_info.items.length > 0 && (
-              <>
-                <strong>Ítems Comprados:</strong><br />
-                {transaction.additional_info.items.map((item, index) => (
-                  <div key={index}>
-                    - {item.title} (Cantidad: {item.quantity}, Precio: ${item.unit_price?.toFixed(2)})
-                  </div>
-                ))}
-              </>
-            )}
-            {transaction.additional_info?.tracking_id && (
-              <>
-                <strong>ID de Seguimiento:</strong> {transaction.additional_info.tracking_id}<br />
-              </>
-            )}
-            {transaction.external_reference && (
-              <>
-                <strong>Referencia Externa:</strong> {transaction.external_reference}<br />
-              </>
-            )}
-            {transaction.fee_details && transaction.fee_details.length > 0 && (
-              <>
-                <strong>Detalles de Comisiones:</strong><br />
-                {transaction.fee_details.map((fee, index) => (
-                  <div key={index}>
-                    - Tipo: {fee.type}, Monto: ${fee.amount?.toFixed(2)}, Pagador: {fee.fee_payer}
-                  </div>
-                ))}
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
-      {transactions.length === 0 && <p>No hay transacciones disponibles</p>}
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Monitoreo de Transferencias</h1>
+      <table className="min-w-full bg-white border border-gray-300">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="py-2 px-4 border-b">ID de Pago</th>
+            <th className="py-2 px-4 border-b">Descripción</th>
+            <th className="py-2 px-4 border-b">Monto</th>
+            <th className="py-2 px-4 border-b">Estado</th>
+            <th className="py-2 px-4 border-b">Fecha de Creación</th>
+            <th className="py-2 px-4 border-b">Método de Pago</th>
+            <th className="py-2 px-4 border-b">Email del Pagador</th>
+            <th className="py-2 px-4 border-b">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.map((transaction) => (
+            <tr key={transaction.id} className="hover:bg-gray-50">
+              <td className="py-2 px-4 border-b">{transaction.id}</td>
+              <td className="py-2 px-4 border-b">{transaction.description}</td>
+              <td className="py-2 px-4 border-b">${transaction.amount.toFixed(2)}</td>
+              <td className="py-2 px-4 border-b">{transaction.status || 'Sin estado'}</td>
+              <td className="py-2 px-4 border-b">
+                {transaction.date_created ? new Date(transaction.date_created).toLocaleString() : 'No disponible'}
+              </td>
+              <td className="py-2 px-4 border-b">{transaction.payment_method_id || 'No disponible'}</td>
+              <td className="py-2 px-4 border-b">{transaction.payer_email || 'No disponible'}</td>
+              <td className="py-2 px-4 border-b">
+                {transaction.buttonStatus === 'Pending' ? (
+                  <button
+                    onClick={() => handleAccept(transaction.id)}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                  >
+                    Pending
+                  </button>
+                ) : (
+                  <span className="bg-green-500 text-white px-4 py-2 rounded">Aceptado</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {transactions.length === 0 && <p className="mt-4">No hay transacciones disponibles</p>}
     </div>
   );
 }
