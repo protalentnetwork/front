@@ -14,20 +14,28 @@ interface Transaction {
   statusDetail?: string;
   paymentMethodId?: string;
   paymentTypeId?: string;
-  payerId?: number;
+  payerId?: number | string; // Ajuste para que coincida con el tipo en el backend
   payerEmail?: string;
   payerIdentification?: {
     type?: string;
     number?: string;
   };
-  payerType?: string;
+  payerType?: string | null;
   transactionDetails?: {
-    netReceivedAmount?: number;
-    totalPaidAmount?: number;
-    overpaidAmount?: number;
+    acquirerReference?: string | null;
+    bankTransferId?: number;
+    externalResourceUrl?: string | null;
+    financialInstitution?: string;
     installmentAmount?: number;
+    netReceivedAmount?: number;
+    overpaidAmount?: number;
+    payableDeferralPeriod?: string | null;
+    paymentMethodReferenceId?: string | null;
+    totalPaidAmount?: number;
+    transactionId?: string;
   };
   additionalInfo?: {
+    trackingId?: string;
     items?: Array<{
       id?: string;
       title?: string;
@@ -48,7 +56,7 @@ interface Transaction {
       };
     };
   };
-  externalReference?: string;
+  externalReference?: string | null;
   feeDetails?: Array<{
     type?: string;
     amount?: number;
@@ -94,7 +102,7 @@ export default function Page() {
             <strong>Descripción:</strong> {transaction.description}<br />
             <strong>Monto:</strong> ${transaction.amount.toFixed(2)}<br />
             <strong>Estado:</strong> {transaction.status || 'Sin estado'} {transaction.statusDetail ? `(${transaction.statusDetail})` : ''}<br />
-            <strong>Fecha de Creación:</strong> {new Date(transaction.dateCreated || '').toLocaleString()}<br />
+            <strong>Fecha de Creación:</strong> {transaction.dateCreated ? new Date(transaction.dateCreated).toLocaleString() : 'No disponible'}<br />
             <strong>Fecha de Aprobación:</strong> {transaction.dateApproved ? new Date(transaction.dateApproved).toLocaleString() : 'No disponible'}<br />
             <strong>Fecha de Última Actualización:</strong> {transaction.dateLastUpdated ? new Date(transaction.dateLastUpdated).toLocaleString() : 'No disponible'}<br />
             <strong>Fecha de Liberación de Fondos:</strong> {transaction.moneyReleaseDate ? new Date(transaction.moneyReleaseDate).toLocaleString() : 'No disponible'}<br />
@@ -110,6 +118,9 @@ export default function Page() {
                 <strong>Monto Total Pagado:</strong> ${transaction.transactionDetails.totalPaidAmount?.toFixed(2) || 'No disponible'}<br />
                 <strong>Monto Sobregirado:</strong> ${transaction.transactionDetails.overpaidAmount?.toFixed(2) || 'No disponible'}<br />
                 <strong>Monto por Cuota:</strong> ${transaction.transactionDetails.installmentAmount?.toFixed(2) || 'No disponible'}<br />
+                <strong>ID de Transferencia Bancaria:</strong> {transaction.transactionDetails.bankTransferId || 'No disponible'}<br />
+                <strong>Institución Financiera:</strong> {transaction.transactionDetails.financialInstitution || 'No disponible'}<br />
+                <strong>ID de Transacción:</strong> {transaction.transactionDetails.transactionId || 'No disponible'}<br />
               </>
             )}
             {transaction.additionalInfo?.items && transaction.additionalInfo.items.length > 0 && (
@@ -117,16 +128,21 @@ export default function Page() {
                 <strong>Ítems Comprados:</strong><br />
                 {transaction.additionalInfo.items.map((item, index) => (
                   <div key={index}>
-                    - {item.title} (Cantidad: {item.quantity}, Precio: {item.unit_price?.toFixed(2)})
+                    - {item.title} (Cantidad: {item.quantity}, Precio: ${item.unit_price?.toFixed(2)})
                   </div>
                 ))}
               </>
             )}
-            {transaction.externalReference && (
-              <>
-                <strong>Referencia Externa:</strong> {transaction.externalReference}<br />
-              </>
-            )}
+           {transaction.additionalInfo?.trackingId && (
+  <>
+    <strong>ID de Seguimiento:</strong> {transaction.additionalInfo.trackingId}<br />
+  </>
+)}
+{transaction.externalReference && (
+  <>
+    <strong>Referencia Externa:</strong> {transaction.externalReference}<br />
+  </>
+)}
             {transaction.feeDetails && transaction.feeDetails.length > 0 && (
               <>
                 <strong>Detalles de Comisiones:</strong><br />
