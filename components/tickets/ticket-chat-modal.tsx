@@ -85,11 +85,11 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
     try {
       const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL
       const response = await fetch(`${baseUrl}/zendesk/tickets/${ticketId}`)
-      
+
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
-      
+
       const data = await response.json()
       console.log("Ticket info:", data)
       setTicketInfo(data)
@@ -112,13 +112,13 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
       }
 
       const data: CommentsResponse = await response.json()
-      
+
       console.log("Comentarios recibidos:", data.comments)
-      
+
       // Obtener el ticket para conocer el requester_id
       const ticketData = await fetchTicketInfo()
       const requesterId = ticketData?.requester_id
-      
+
       // Log detallado de cada comentario
       if (data.comments && data.comments.length > 0) {
         data.comments.forEach((comment, index) => {
@@ -134,22 +134,22 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
           });
         });
       }
-      
+
       // Filtrar mensajes locales temporales para evitar duplicados
       const serverComments = data.comments.map(comment => ({
         ...comment,
         isLocalMessage: false
       }))
-      
+
       // Mantener solo comentarios locales que no coincidan con los del servidor
-      const localComments = comments.filter(comment => 
-        comment.isLocalMessage && 
-        !serverComments.some(serverComment => 
-          serverComment.plain_body === comment.plain_body && 
+      const localComments = comments.filter(comment =>
+        comment.isLocalMessage &&
+        !serverComments.some(serverComment =>
+          serverComment.plain_body === comment.plain_body &&
           new Date(serverComment.created_at).getTime() > Date.now() - 60000
         )
       )
-      
+
       setComments([...serverComments, ...localComments])
     } catch (error) {
       console.error('Error fetching comments:', error)
@@ -166,10 +166,10 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
   useEffect(() => {
     if (isOpen && ticketId) {
       fetchComments()
-      
+
       // Polling para actualizar comentarios cada 10 segundos
       const intervalId = setInterval(fetchComments, 10000)
-      
+
       return () => clearInterval(intervalId)
     }
   }, [isOpen, ticketId])
@@ -181,7 +181,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
       setIsSending(true)
       setError(null)
       const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL
-      
+
       // Añadir mensaje temporal a la interfaz inmediatamente
       const tempId = Date.now()
       const tempMessage: Comment = {
@@ -199,15 +199,15 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
         metadata: { system: { client: "", ip_address: "", location: "", latitude: 0, longitude: 0 }, custom: {} },
         isLocalMessage: true // Marca el mensaje como local/temporal
       }
-      
+
       console.log("Enviando mensaje como agente con ID:", agentId)
       console.log("Mensaje temporal:", tempMessage)
-      
+
       // Actualizar UI inmediatamente con mensaje temporal
       setComments(prevComments => [...prevComments, tempMessage])
       setNewMessage("")
       scrollToBottom()
-      
+
       // Enviar a la API
       const response = await fetch(`${baseUrl}/zendesk/tickets/${ticketId}/comments`, {
         method: 'POST',
@@ -221,7 +221,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
       })
 
       console.log('Response status:', response.status, response.statusText)
-      
+
       if (!response.ok) {
         const errorText = await response.text()
         console.error('Server response:', errorText)
@@ -230,7 +230,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
 
       const responseData = await response.json()
       console.log('Respuesta del servidor tras enviar mensaje:', responseData)
-      
+
       // Actualizar los comentarios después de un breve retraso
       setTimeout(() => {
         fetchComments()
@@ -241,9 +241,9 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
       console.error('Error sending message:', error)
       setError('Error al enviar el mensaje. Por favor, intenta de nuevo.')
       toast.error('Error al enviar el mensaje como agente')
-      
+
       // Eliminar el mensaje temporal en caso de error
-      setComments(prevComments => 
+      setComments(prevComments =>
         prevComments.filter(comment => !comment.isLocalMessage)
       )
     } finally {
@@ -278,27 +278,27 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
     if (ticketInfo?.requester_id) {
       return comment.author_id === ticketInfo.requester_id
     }
-    
+
     // Si es un mensaje local/temporal que creamos como agente
     if (comment.isLocalMessage) {
       return false
     }
-    
+
     // Si coincide con el ID del agente actual, definitivamente NO es del cliente
     if (comment.author_id === parseInt(agentId)) {
       return false
     }
-    
+
     // El primer comentario generalmente es la descripción del ticket (del cliente)
     if (comments.indexOf(comment) === 0) {
       return true
     }
-    
+
     // Si viene del canal web, probablemente es del cliente
     if (comment.via?.channel === "web") {
       return true
     }
-    
+
     // En caso de duda, asumimos que es del cliente si no podemos confirmar que es del agente
     return true
   }
@@ -333,18 +333,17 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
             <>
               {comments.map((comment, index) => {
                 const isFromClient = isClientComment(comment)
-                
+
                 return (
                   <div
                     key={comment.id}
                     className={`flex ${isFromClient ? "justify-start" : "justify-end"}`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                        isFromClient
+                      className={`max-w-[80%] rounded-lg px-4 py-2 ${isFromClient
                           ? "bg-muted"
                           : "bg-primary text-primary-foreground ml-auto"
-                      } ${comment.isLocalMessage ? "opacity-80" : ""}`}
+                        } ${comment.isLocalMessage ? "opacity-80" : ""}`}
                     >
                       <div className="flex justify-between items-start mb-1">
                         <span className="text-xs font-semibold">
@@ -369,13 +368,9 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
           )}
         </div>
 
-        {/* Message Input */}
+        {/* Message Input - Corregido el onSubmit duplicado */}
         <div className="border-t pt-4">
           <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleSendMessage()
-            }}
             onSubmit={(e) => {
               e.preventDefault()
               handleSendMessage()

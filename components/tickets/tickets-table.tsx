@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Table,
   TableBody,
@@ -22,6 +22,30 @@ interface TicketsTableProps {
 
 export function TicketsTable({ tickets = [] }: TicketsTableProps) {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
+  const [agentId, setAgentId] = useState<string>("")
+
+  // Obtener el ID del agente actual desde la sesión o estado global
+  useEffect(() => {
+    // Puedes obtener el ID del agente de donde lo tengas guardado 
+    // (localStorage, estado global, cookie, etc.)
+    const getCurrentAgentId = () => {
+      // Ejemplo: podría venir de localStorage
+      const storedAgentId = localStorage.getItem("agentId")
+
+      // O de un endpoint específico
+      // const fetchAgentId = async () => {
+      //   const response = await fetch('/api/current-user');
+      //   const data = await response.json();
+      //   setAgentId(data.agentId);
+      // }
+
+      // Para fines de prueba, si no hay un ID de agente almacenado,
+      // podríamos usar uno por defecto
+      return storedAgentId || "12345" // ID por defecto para pruebas
+    }
+
+    setAgentId(getCurrentAgentId())
+  }, [])
 
   const getStatusColor = (status: string = ""): string => {
     switch (status.toLowerCase()) {
@@ -117,7 +141,7 @@ export function TicketsTable({ tickets = [] }: TicketsTableProps) {
           onClose={() => setSelectedTicket(null)}
           user={selectedTicket.user}
           ticketId={selectedTicket.id}
-          agentId={agentId} // Pasar el ID del agente
+          agentId={agentId} // Ahora pasamos el ID del agente obtenido del estado
         />
       )}
     </>
