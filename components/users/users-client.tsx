@@ -8,31 +8,38 @@ import { CreateUserModal } from "@/app/dashboard/users/create-user-modal"
 
 interface UsersClientProps {
   initialUsers: User[]
+  userType: 'internal' | 'external'
 }
 
-export function UsersClient({ initialUsers }: UsersClientProps) {
+export function UsersClient({ initialUsers, userType }: UsersClientProps) {
   const [filteredUsers, setFilteredUsers] = useState(initialUsers)
   const [users, setUsers] = useState(initialUsers)
 
   const refreshUsers = async () => {
     try {
-      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users`
+      // Usamos un endpoint diferente según el tipo de usuario
+      const endpoint = userType === 'internal' ? 'users' : 'external-users'
+      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/${endpoint}`
+
       const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
         setUsers(data)
         setFilteredUsers(data)
       } else {
-        console.error("Client error fetching users:", response.status, response.statusText)
+        console.error(`Client error fetching ${userType} users:`, response.status, response.statusText)
       }
     } catch (error) {
-      console.error("Client error fetching users:", error)
+      console.error(`Client error fetching ${userType} users:`, error)
     }
   }
 
   const updateUser = async (userId: string, userData: Partial<User>) => {
     try {
-      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${userId}`
+      // Usamos un endpoint diferente según el tipo de usuario
+      const endpoint = userType === 'internal' ? 'users' : 'external-users'
+      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/${endpoint}/${userId}`
+
       const response = await fetch(url, {
         method: 'PATCH',
         headers: {
@@ -44,19 +51,19 @@ export function UsersClient({ initialUsers }: UsersClientProps) {
       if (response.ok) {
         const updatedUser = await response.json()
         // Update the local state with the updated user
-        setUsers(prevUsers => 
+        setUsers(prevUsers =>
           prevUsers.map(user => user.id === userId ? { ...user, ...updatedUser } : user)
         )
-        setFilteredUsers(prevFiltered => 
+        setFilteredUsers(prevFiltered =>
           prevFiltered.map(user => user.id === userId ? { ...user, ...updatedUser } : user)
         )
         return updatedUser
       } else {
-        console.error("Error updating user:", response.status, response.statusText)
+        console.error(`Error updating ${userType} user:`, response.status, response.statusText)
         throw new Error(`Error updating user: ${response.statusText}`)
       }
     } catch (error) {
-      console.error("Error updating user:", error)
+      console.error(`Error updating ${userType} user:`, error)
       throw error
     }
   }
@@ -87,14 +94,20 @@ export function UsersClient({ initialUsers }: UsersClientProps) {
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Usuarios</h1>
-        <CreateUserModal onUserCreated={refreshUsers} />
+        <h2 className="text-xl font-semibold">
+          {userType === 'internal' ? 'Usuarios Internos' : 'Usuarios Externos'}
+        </h2>
+        <CreateUserModal
+          onUserCreated={refreshUsers}
+          userType={userType}
+        />
       </div>
       <UsersFilters onFilterChange={handleFilterChange} users={users} />
-      <UsersTable 
-        users={filteredUsers} 
-        onUpdateUser={updateUser} 
+      <UsersTable
+        users={filteredUsers}
+        onUpdateUser={updateUser}
         onRefreshUsers={refreshUsers}
+        userType={userType}
       />
     </>
   )

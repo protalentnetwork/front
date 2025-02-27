@@ -39,6 +39,7 @@ interface UsersTableProps {
   users: User[]
   onUpdateUser: (userId: string, userData: Partial<User>) => Promise<void>
   onRefreshUsers?: () => Promise<void>
+  userType?: 'internal' | 'external' // Añadimos esta propiedad
 }
 
 function getStatusDisplay(status: string) {
@@ -61,7 +62,7 @@ function getStatusDisplay(status: string) {
   }
 }
 
-export function UsersTable({ users, onRefreshUsers }: UsersTableProps) {
+export function UsersTable({ users, onRefreshUsers, userType = 'internal' }: UsersTableProps) {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSessionsModalOpen, setIsSessionsModalOpen] = useState(false)
@@ -103,7 +104,7 @@ export function UsersTable({ users, onRefreshUsers }: UsersTableProps) {
 
   const handleSaveUser = async (updatedUser: Partial<User> & { isActive?: boolean }) => {
     if (!selectedUser) return
-    
+
     setIsLoading(true)
     try {
       const userData: Partial<User> = {
@@ -112,24 +113,24 @@ export function UsersTable({ users, onRefreshUsers }: UsersTableProps) {
         role: updatedUser.role,
         office: updatedUser.office
       }
-            
-      setUpdatedUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === selectedUser.id 
-            ? { 
-                ...user, 
-                status: userData.status || user.status,
-                receivesWithdrawals: updatedUser.receivesWithdrawals !== undefined 
-                  ? updatedUser.receivesWithdrawals 
-                  : user.receivesWithdrawals,
-                role: userData.role || user.role,
-                office: userData.office || user.office
-              } 
+
+      setUpdatedUsers(prevUsers =>
+        prevUsers.map(user =>
+          user.id === selectedUser.id
+            ? {
+              ...user,
+              status: userData.status || user.status,
+              receivesWithdrawals: updatedUser.receivesWithdrawals !== undefined
+                ? updatedUser.receivesWithdrawals
+                : user.receivesWithdrawals,
+              role: userData.role || user.role,
+              office: userData.office || user.office
+            }
             : user
         )
       )
       setIsEditModalOpen(false)
-      
+
       setTimeout(() => {
         toast.success('Usuario actualizado correctamente')
       }, 100)
@@ -145,11 +146,13 @@ export function UsersTable({ users, onRefreshUsers }: UsersTableProps) {
 
   const handleSavePassword = async (password: string) => {
     if (!selectedUser) return
-    
+
     setIsLoading(true)
     try {
-      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${selectedUser.id}/password`
-      
+      // Usar el endpoint correcto según el tipo de usuario
+      const endpoint = userType === 'external' ? 'external-users' : 'users'
+      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/${endpoint}/${selectedUser.id}/password`
+
       const response = await fetch(url, {
         method: 'PATCH',
         headers: {
@@ -161,9 +164,9 @@ export function UsersTable({ users, onRefreshUsers }: UsersTableProps) {
       if (!response.ok) {
         throw new Error(`Error al actualizar contraseña: ${response.statusText}`)
       }
-      
+
       setIsPasswordModalOpen(false)
-      
+
       setTimeout(() => {
         toast.success('Contraseña actualizada correctamente')
       }, 100)
@@ -179,11 +182,13 @@ export function UsersTable({ users, onRefreshUsers }: UsersTableProps) {
 
   const handleConfirmDelete = async () => {
     if (!selectedUser) return
-    
+
     setIsLoading(true)
     try {
-      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${selectedUser.id}`
-      
+      // Usar el endpoint correcto según el tipo de usuario
+      const endpoint = userType === 'external' ? 'external-users' : 'users'
+      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/${endpoint}/${selectedUser.id}`
+
       const response = await fetch(url, {
         method: 'DELETE',
         headers: {
@@ -194,17 +199,17 @@ export function UsersTable({ users, onRefreshUsers }: UsersTableProps) {
       if (!response.ok) {
         throw new Error(`Error al eliminar usuario: ${response.statusText}`)
       }
-      
-      setUpdatedUsers(prevUsers => 
+
+      setUpdatedUsers(prevUsers =>
         prevUsers.filter(user => user.id !== selectedUser.id)
       )
-      
+
       if (onRefreshUsers) {
         await onRefreshUsers()
       }
-      
+
       setIsDeleteModalOpen(false)
-      
+
       setTimeout(() => {
         toast.success('Usuario eliminado correctamente')
       }, 100)
@@ -289,7 +294,7 @@ export function UsersTable({ users, onRefreshUsers }: UsersTableProps) {
                           <span>Cambiar contraseña</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={() => handleDeleteUser(user)}
                           className="text-red-600 focus:text-red-600 focus:bg-red-50"
                         >
@@ -338,4 +343,4 @@ export function UsersTable({ users, onRefreshUsers }: UsersTableProps) {
       )}
     </>
   )
-} 
+}

@@ -1,159 +1,202 @@
 "use client"
 
 import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
-    SelectValue,
+    SelectValue
 } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import { PlusCircle } from "lucide-react"
 
-export function CreateUserModal({ onUserCreated }: { onUserCreated?: () => void }) {
-    const [username, setUsername] = useState("")
-    const [password, setPassword] = useState("")
-    const [role, setRole] = useState("")
-    const [office, setOffice] = useState("")
-    const [isOpen, setIsOpen] = useState(false)
-    const [email, setEmail] = useState("")
+interface CreateUserModalProps {
+    onUserCreated: () => Promise<void>
+    userType: 'internal' | 'external'
+}
+
+export function CreateUserModal({ onUserCreated, userType }: CreateUserModalProps) {
+    const [open, setOpen] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
+    const [formData, setFormData] = useState({
+        username: "",
+        email: "",
+        role: "",
+        office: "",
+        status: "active",
+    })
+
+    const handleChange = (field: string, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }))
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+
+        if (!formData.username || !formData.email || !formData.role) {
+            toast.error("Por favor completa todos los campos requeridos")
+            return
+        }
+
+        setIsLoading(true)
+
         try {
-            const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users`
-            const response = await fetch(url, {
+            // Usar el endpoint correspondiente según el tipo de usuario
+            const endpoint = userType === 'internal' ? 'users' : 'external-users'
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/${endpoint}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    username,
-                    password,
-                    role,
-                    office,
-                    email
-                }),
+                body: JSON.stringify(formData),
             })
 
             if (response.ok) {
-                setIsOpen(false)
-                setUsername("")
-                setPassword("")
-                setRole("")
-                setOffice("")
-                setEmail("")
-                
-                setTimeout(() => {
-                    toast.success("Usuario creado correctamente")
-                }, 100)
-                
-                if (onUserCreated) onUserCreated()
+                toast.success(`${userType === 'internal' ? 'Usuario interno' : 'Usuario externo'} creado correctamente`)
+                setFormData({
+                    username: "",
+                    email: "",
+                    role: "",
+                    office: "",
+                    status: "active",
+                })
+                setOpen(false)
+                await onUserCreated()
             } else {
-                const errorData = await response.json()
-                console.error('Error creating user:', errorData)
-                throw new Error(errorData.message || "Error al crear el usuario")
+                const errorData = await response.json().catch(() => ({ message: "Error desconocido" }))
+                toast.error(`Error al crear usuario: ${errorData.message || response.statusText}`)
             }
-        } catch (error: unknown) {
-            console.error('Error creating user:', error)
-            
-            setTimeout(() => {
-                if (error instanceof Error) {
-                    toast.error(error.message || "No se pudo crear el usuario")
-                } else {
-                    toast.error("No se pudo crear el usuario")
-                }
-            }, 100)
+        } catch (error) {
+            console.error("Error creating user:", error)
+            toast.error("Error al crear usuario. Intenta nuevamente.")
+        } finally {
+            setIsLoading(false)
         }
     }
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Crear Usuario
+                <Button className="gap-2">
+                    <PlusCircle className="h-4 w-4" />
+                    <span>Nuevo {userType === 'internal' ? 'Usuario Interno' : 'Usuario Externo'}</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Crear Nuevo Usuario</DialogTitle>
+                    <DialogTitle>Crear {userType === 'internal' ? 'Usuario Interno' : 'Usuario Externo'}</DialogTitle>
+                    <DialogDescription>
+                        Completa el formulario para crear un nuevo {userType === 'internal' ? 'usuario interno' : 'usuario externo'}.
+                    </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="username">Usuario</Label>
-                        <Input
-                            id="username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Ingrese el nombre de usuario"
-                        />
+                <form onSubmit={handleSubmit}>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="username" className="text-right">
+                                Nombre
+                            </Label>
+                            <Input
+                                id="username"
+                                className="col-span-3"
+                                value={formData.username}
+                                onChange={(e) => handleChange("username", e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="email" className="text-right">
+                                Email
+                            </Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                className="col-span-3"
+                                value={formData.email}
+                                onChange={(e) => handleChange("email", e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="role" className="text-right">
+                                Rol
+                            </Label>
+                            <Select
+                                value={formData.role}
+                                onValueChange={(value) => handleChange("role", value)}
+                            >
+                                <SelectTrigger className="col-span-3">
+                                    <SelectValue placeholder="Seleccionar rol" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="admin">Administrador</SelectItem>
+                                    <SelectItem value="user">Usuario</SelectItem>
+                                    <SelectItem value="viewer">Visualizador</SelectItem>
+                                    {userType === 'external' && (
+                                        <SelectItem value="client">Cliente</SelectItem>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="office" className="text-right">
+                                Oficina
+                            </Label>
+                            <Select
+                                value={formData.office}
+                                onValueChange={(value) => handleChange("office", value)}
+                            >
+                                <SelectTrigger className="col-span-3">
+                                    <SelectValue placeholder="Seleccionar oficina" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="central">Oficina Central</SelectItem>
+                                    <SelectItem value="north">Zona Norte</SelectItem>
+                                    <SelectItem value="south">Zona Sur</SelectItem>
+                                    <SelectItem value="east">Zona Este</SelectItem>
+                                    <SelectItem value="west">Zona Oeste</SelectItem>
+                                    {userType === 'external' && (
+                                        <SelectItem value="remote">Remoto</SelectItem>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="status" className="text-right">
+                                Estado
+                            </Label>
+                            <Select
+                                value={formData.status}
+                                onValueChange={(value) => handleChange("status", value)}
+                            >
+                                <SelectTrigger className="col-span-3">
+                                    <SelectValue placeholder="Seleccionar estado" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="active">Activo</SelectItem>
+                                    <SelectItem value="inactive">Inactivo</SelectItem>
+                                    <SelectItem value="pending">Pendiente</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="password">Contraseña</Label>
-                        <Input
-                            id="password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Ingrese la contraseña"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                            id="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Ingrese el email"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="role">Rol</Label>
-                        <Select value={role} onValueChange={setRole}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Seleccione un rol" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="operador">Operador</SelectItem>
-                                <SelectItem value="encargado">Encargado</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="office">Oficina</Label>
-                        <Input
-                            id="office"
-                            value={office}
-                            onChange={(e) => setOffice(e.target.value)}
-                            placeholder="Ingrese la oficina"
-                        />
-                    </div>
-
-                    <div className="flex justify-end space-x-2 pt-4">
-                        <Button variant="outline" type="button" onClick={() => setIsOpen(false)}>
-                            Cancelar
+                    <DialogFooter>
+                        <Button type="submit" disabled={isLoading}>
+                            {isLoading ? "Creando..." : "Crear usuario"}
                         </Button>
-                        <Button type="submit">
-                            Crear
-                        </Button>
-                    </div>
+                    </DialogFooter>
                 </form>
             </DialogContent>
         </Dialog>
