@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Table,
   TableBody,
@@ -22,7 +22,7 @@ interface TicketsTableProps {
 
 export function TicketsTable({ tickets = [] }: TicketsTableProps) {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
-  const [agentId, setAgentId] = useState<string>("12345") // Valor predeterminado para pruebas
+  const [agentId] = useState<string>("12345") // Eliminado setAgentId ya que no se usa
 
   const getStatusColor = (status: string = ""): string => {
     switch (status.toLowerCase()) {
@@ -118,7 +118,7 @@ export function TicketsTable({ tickets = [] }: TicketsTableProps) {
           onClose={() => setSelectedTicket(null)}
           user={selectedTicket.user}
           ticketId={selectedTicket.id}
-          agentId={agentId} // Pasar el ID del agente
+          agentId={agentId}
         />
       )}
     </>
