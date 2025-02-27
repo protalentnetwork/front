@@ -44,11 +44,11 @@ export default async function UsersPage() {
             <TabsTrigger value="external">Usuarios Externos</TabsTrigger>
           </TabsList>
         </div>
-        
+
         <TabsContent value="internal">
           <UsersClient initialUsers={internalUsers} userType="internal" />
         </TabsContent>
-        
+
         <TabsContent value="external">
           <UsersClient initialUsers={externalUsers} userType="external" />
         </TabsContent>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import {
   Dialog,
   DialogContent,
@@ -63,6 +63,23 @@ interface CommentsResponse {
   count: number
 }
 
+// Definir una interfaz para la información del ticket
+interface TicketInfo {
+  id: number;
+  subject: string;
+  description: string;
+  status: string;
+  requester_id: number;
+  assignee_id?: number;
+  created_at?: string;
+  updated_at?: string;
+  user?: {
+    name: string;
+    email: string;
+  };
+  group_id?: number;
+}
+
 interface TicketChatModalProps {
   isOpen: boolean
   onClose: () => void
@@ -77,7 +94,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
   const [isSending, setIsSending] = useState(false)
   const [newMessage, setNewMessage] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const [ticketInfo, setTicketInfo] = useState<any>(null)
+  const [ticketInfo, setTicketInfo] = useState<TicketInfo | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Función para obtener info del ticket (incluyendo requester_id)
@@ -100,7 +117,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
     }
   }
 
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
@@ -121,8 +138,8 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
 
       // Log detallado de cada comentario
       if (data.comments && data.comments.length > 0) {
-        data.comments.forEach((comment, index) => {
-          console.log(`Comentario ${index}:`, {
+        data.comments.forEach((comment, i) => {
+          console.log(`Comentario ${i}:`, {
             id: comment.id,
             author_id: comment.author_id,
             via_channel: comment.via?.channel,
@@ -130,7 +147,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
             is_agent: comment.author_id === parseInt(agentId),
             public: comment.public,
             type: comment.type,
-            isFirstComment: index === 0
+            isFirstComment: i === 0
           });
         });
       }
@@ -161,7 +178,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
       setIsLoading(false)
       scrollToBottom()
     }
-  }
+  }, [ticketId, agentId, comments]);
 
   useEffect(() => {
     if (isOpen && ticketId) {
@@ -172,7 +189,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
 
       return () => clearInterval(intervalId)
     }
-  }, [isOpen, ticketId])
+  }, [isOpen, ticketId, fetchComments])
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || isSending) return
@@ -331,7 +348,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
             </div>
           ) : (
             <>
-              {comments.map((comment, index) => {
+              {comments.map((comment) => {
                 const isFromClient = isClientComment(comment)
 
                 return (
@@ -341,8 +358,8 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
                   >
                     <div
                       className={`max-w-[80%] rounded-lg px-4 py-2 ${isFromClient
-                          ? "bg-muted"
-                          : "bg-primary text-primary-foreground ml-auto"
+                        ? "bg-muted"
+                        : "bg-primary text-primary-foreground ml-auto"
                         } ${comment.isLocalMessage ? "opacity-80" : ""}`}
                     >
                       <div className="flex justify-between items-start mb-1">
@@ -368,7 +385,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
           )}
         </div>
 
-        {/* Message Input - Corregido el onSubmit duplicado */}
+        {/* Message Input */}
         <div className="border-t pt-4">
           <form
             onSubmit={(e) => {
