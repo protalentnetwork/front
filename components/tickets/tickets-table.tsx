@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { TicketChatModal } from "./ticket-chat-modal"
-import { Ticket, TicketUser } from "./tickets-client"
+import { Ticket } from "./tickets-client"
 import { Card } from "@/components/ui/card"
 import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
@@ -23,7 +23,7 @@ interface TicketsTableProps {
 export function TicketsTable({ tickets = [] }: TicketsTableProps) {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
 
-  const getStatusColor = (status: string = "") => {
+  const getStatusColor = (status: string = ""): string => {
     switch (status.toLowerCase()) {
       case 'open':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
@@ -38,12 +38,12 @@ export function TicketsTable({ tickets = [] }: TicketsTableProps) {
     }
   }
 
-  const formatDate = (dateString: string | undefined) => {
+  const formatDate = (dateString: string | undefined): string => {
     if (!dateString) return 'N/A'
     try {
       return format(parseISO(dateString), 'dd/MM/yyyy HH:mm', { locale: es })
     } catch (error) {
-      return 'Fecha inválida'
+      return 'Fecha inválida ' + error
     }
   }
 

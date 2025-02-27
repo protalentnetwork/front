@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, TooltipProps } from 'recharts';
 import { Clock, Users, MessageSquare, Ticket, AlertCircle } from 'lucide-react';
 import { reportApi, StatusDistribution, TicketsByAgent, TicketsTrend, MessageVolume, MessageDistribution, ResponseTimeByAgent, LoginActivity, UserRole, NewUsersByMonth, DashboardSummary } from './services/report.api';
 import { useTheme } from 'next-themes';
@@ -32,12 +32,26 @@ interface ChartCardProps {
 interface PieChartLabelProps {
     name: string;
     percent: number;
+    cx?: number;
+    cy?: number;
+    midAngle?: number;
+    innerRadius?: number;
+    outerRadius?: number;
+    index?: number;
+    value?: number;
+    fill?: string;
+    payload?: StatusDistribution | TicketsByAgent | MessageDistribution | UserRole;
 }
 
 // Define un tipo genérico para los datos de gráficos
 type ChartData = StatusDistribution[] | TicketsByAgent[] | TicketsTrend[] | 
                 MessageVolume[] | MessageDistribution[] | ResponseTimeByAgent[] | 
                 LoginActivity[] | UserRole[] | NewUsersByMonth[];
+
+// Define una interfaz para los errores
+interface ReportErrors {
+    [key: string]: string | null;
+}
 
 // Definición de colores para gráficos
 const LIGHT_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -52,12 +66,11 @@ const ReportsDashboard = () => {
     const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
     
     // Personalización del tooltip para tener el texto correcto en modo oscuro
-    const customTooltip = (props: any) => {
-        const { active, payload } = props;
+    const customTooltip = ({ active, payload }: TooltipProps<number, string>) => {
         if (active && payload && payload.length) {
             return (
                 <div className={`bg-white dark:bg-gray-800 p-2 border border-gray-200 dark:border-gray-700 rounded shadow`}>
-                    {payload.map((entry: any, index: number) => (
+                    {payload.map((entry, index) => (
                         <div key={`item-${index}`} className="flex items-center">
                             <div 
                                 className="w-3 h-3 mr-2" 
@@ -87,7 +100,7 @@ const ReportsDashboard = () => {
     const [summaryData, setSummaryData] = useState<DashboardSummary | null>(null);
 
     // Estados para manejo de errores y carga
-    const [errors, setErrors] = useState<Record<string, string | null>>({});
+    const [errors, setErrors] = useState<ReportErrors>({});
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('tickets');
 
@@ -190,7 +203,7 @@ const ReportsDashboard = () => {
         errorKey: string,
         renderFunction: (validData: T) => React.ReactNode,
         emptyMessage: string = "No hay datos disponibles"
-    ) => {
+    ): React.ReactNode => {
         if (errors[errorKey]) {
             return (
                 <div className="flex flex-col items-center justify-center h-64 text-red-500">
