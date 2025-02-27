@@ -10,7 +10,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Archive, Clock, MessageSquare } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ChatInput from './ChatInput';
 
 // Types
@@ -26,11 +27,12 @@ interface Message {
 interface ChatData {
     chat_user_id: string;
     chat_agent_id: string | null;
+    status?: 'active' | 'pending' | 'archived';
 }
 
 // Socket configuration
 const socket = io('https://backoffice-casino-back-production.up.railway.app', {
-    transports: ['polling', 'websocket'],
+    transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
@@ -40,7 +42,10 @@ const socket = io('https://backoffice-casino-back-production.up.railway.app', {
 
 export default function ChatDashboard() {
     const [activeChats, setActiveChats] = useState<ChatData[]>([]);
+    const [pendingChats, setPendingChats] = useState<ChatData[]>([]);
+    const [archivedChats, setArchivedChats] = useState<ChatData[]>([]);
     const [selectedChat, setSelectedChat] = useState<string | null>(null);
+    const [selectedTab, setSelectedTab] = useState<string>('active');
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -61,36 +66,60 @@ export default function ChatDashboard() {
             setIsConnected(true);
             setIsLoading(false);
             setError(null);
+            console.log('Socket conectado correctamente. ID:', socket.id);
+            console.log('Socket transport:', socket.io.engine.transport.name);
+            console.log('¿Socket está conectado?', socket.connected);
+
             socket.emit('joinAgent', { agentId });
-            
+
             // Usamos setTimeout para evitar problemas de actualización de estado
             setTimeout(() => {
                 toast.success('Conectado al servidor de chat');
             }, 100);
         }
 
+        // Añadir manejo de errores de conexión
+        function onConnectError(error: Error) {
+            console.error('Error de conexión socket:', error);
+            setError(`Error de conexión: ${error.message}`);
+            setIsLoading(false);
+
+            setTimeout(() => {
+                toast.error(`Error de conexión: ${error.message}`);
+            }, 100);
+        }
+
         function onDisconnect(reason: string) {
             setIsConnected(false);
-            
+
             // Usamos setTimeout para evitar problemas de actualización de estado
             setTimeout(() => {
                 toast.error(`Se perdió la conexión con el servidor: ${reason}`);
             }, 100);
         }
 
-        function onConnectError(err: Error) {
-            setError(`Error de conexión: ${err.message}`);
+        function onActiveChats(chats: ChatData[]) {
+            const active: ChatData[] = [];
+            const pending: ChatData[] = [];
+
+            // Clasificar los chats según si tienen agente asignado
+            if (Array.isArray(chats)) {
+                chats.forEach(chat => {
+                    if (chat.chat_agent_id) {
+                        active.push({ ...chat, status: 'active' });
+                    } else {
+                        pending.push({ ...chat, status: 'pending' });
+                    }
+                });
+            }
+
+            setActiveChats(active);
+            setPendingChats(pending);
             setIsLoading(false);
-            
-            // Usamos setTimeout para evitar problemas de actualización de estado
-            setTimeout(() => {
-                toast.error(`Error de conexión: ${err.message}`);
-            }, 100);
         }
 
-        function onActiveChats(chats: ChatData[]) {
-            setActiveChats(Array.isArray(chats) ? chats : []);
-            setIsLoading(false);
+        function onArchivedChats(chats: ChatData[]) {
+            setArchivedChats(Array.isArray(chats) ? chats.map(chat => ({ ...chat, status: 'archived' })) : []);
         }
 
         function onMessageHistory(chatMessages: Message[]) {
@@ -98,23 +127,36 @@ export default function ChatDashboard() {
         }
 
         function onNewMessage(message: Message) {
+            console.log('Mensaje nuevo recibido:', message);
             if (selectedChat === message.userId) {
                 setMessages(prev => [...prev, {
                     ...message,
-                    id: nanoid()
+                    id: message.id || nanoid()
                 }]);
                 scrollToBottom();
             }
             
-            setActiveChats(prev => {
-                if (!prev.some(chat => chat.chat_user_id === message.userId)) {
-                    toast(`Nuevo mensaje de Usuario ${message.userId}`, {
+            // Actualizar las listas de chats cuando llega un mensaje nuevo
+            const isInActiveChats = activeChats.some(chat => chat.chat_user_id === message.userId);
+            const isInPendingChats = pendingChats.some(chat => chat.chat_user_id === message.userId);
+            
+            if (!isInActiveChats && !isInPendingChats) {
+                // Si el chat no existe en ninguna lista, añadirlo a pendientes
+                if (!message.agentId) {
+                    setPendingChats(prev => [
+                        ...prev, 
+                        { 
+                            chat_user_id: message.userId, 
+                            chat_agent_id: null,
+                            status: 'pending'
+                        }
+                    ]);
+                    
+                    toast(`Nuevo chat pendiente de Usuario ${message.userId}`, {
                         description: message.message,
                     });
-                    return [...prev, { chat_user_id: message.userId, chat_agent_id: message.agentId || null }];
                 }
-                return prev;
-            });
+            }
         }
 
         // Socket event listeners
@@ -122,8 +164,15 @@ export default function ChatDashboard() {
         socket.on('disconnect', onDisconnect);
         socket.on('connect_error', onConnectError);
         socket.on('activeChats', onActiveChats);
+        socket.on('archivedChats', onArchivedChats);
         socket.on('messageHistory', onMessageHistory);
         socket.on('newMessage', onNewMessage);
+
+        // Solicitar chats activos y archivados al conectar
+        if (socket.connected) {
+            socket.emit('getActiveChats');
+            socket.emit('getArchivedChats');
+        }
 
         // Cleanup
         return () => {
@@ -131,10 +180,11 @@ export default function ChatDashboard() {
             socket.off('disconnect', onDisconnect);
             socket.off('connect_error', onConnectError);
             socket.off('activeChats', onActiveChats);
+            socket.off('archivedChats', onArchivedChats);
             socket.off('messageHistory', onMessageHistory);
             socket.off('newMessage', onNewMessage);
         };
-    }, [selectedChat, scrollToBottom, agentId]);
+    }, [selectedChat, scrollToBottom, agentId, activeChats, pendingChats]);
 
     const selectChat = useCallback((userId: string) => {
         setSelectedChat(userId);
@@ -145,7 +195,117 @@ export default function ChatDashboard() {
     const assignToMe = useCallback((userId: string) => {
         socket.emit('assignAgent', { userId, agentId });
         selectChat(userId);
+
+        // Mover el chat de pendientes a activos
+        setPendingChats(prev => prev.filter(chat => chat.chat_user_id !== userId));
+        setActiveChats(prev => [
+            ...prev,
+            {
+                chat_user_id: userId,
+                chat_agent_id: agentId,
+                status: 'active'
+            }
+        ]);
+
+        // Cambiar a la pestaña de activos
+        setSelectedTab('active');
     }, [agentId, selectChat]);
+
+    const archiveChat = useCallback((userId: string) => {
+        socket.emit('archiveChat', { userId, agentId });
+
+        // Mover el chat a archivados
+        setActiveChats(prev => prev.filter(chat => chat.chat_user_id !== userId));
+        setArchivedChats(prev => [
+            ...prev,
+            {
+                chat_user_id: userId,
+                chat_agent_id: agentId,
+                status: 'archived'
+            }
+        ]);
+
+        if (selectedChat === userId) {
+            setSelectedChat(null);
+        }
+
+        toast.success(`Chat con Usuario ${userId} archivado correctamente`);
+    }, [agentId, selectedChat]);
+
+    const renderChatList = (chats: ChatData[], type: 'active' | 'pending' | 'archived') => {
+        if (chats.length === 0) {
+            return (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                    {type === 'active' && 'No hay chats activos en este momento'}
+                    {type === 'pending' && 'No hay chats pendientes en este momento'}
+                    {type === 'archived' && 'No hay chats archivados en este momento'}
+                </div>
+            );
+        }
+
+        return chats.map((chat) => (
+            <div
+                key={chat.chat_user_id}
+                onClick={() => selectChat(chat.chat_user_id)}
+                className={`p-2 sm:p-3 md:p-4 rounded-lg cursor-pointer transition-colors ${selectedChat === chat.chat_user_id
+                        ? 'bg-accent text-accent-foreground'
+                        : 'hover:bg-muted'
+                    }`}
+            >
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
+                    <div className="min-w-0">
+                        <h3 className="font-medium text-sm sm:text-base truncate">Usuario {chat.chat_user_id}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 truncate">
+                            {type === 'archived' ? 'Chat archivado' : 'Chat en vivo'}
+                        </p>
+                    </div>
+                    <div className="flex flex-row sm:flex-col items-start sm:items-end flex-wrap gap-1 sm:gap-2">
+                        {type !== 'archived' && (
+                            <Badge variant="outline" className="text-[10px] sm:text-xs py-0 h-5">
+                                {isConnected ? 'Activo' : 'Desconectado'}
+                            </Badge>
+                        )}
+
+                        {type === 'active' && (
+                            <>
+                                <Badge variant="secondary" className="text-[10px] sm:text-xs py-0 h-5">
+                                    Asignado a {chat.chat_agent_id}
+                                </Badge>
+                                <Button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        archiveChat(chat.chat_user_id);
+                                    }}
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-[10px] sm:text-xs h-6 py-0"
+                                >
+                                    <Archive className="h-3 w-3 mr-1" />
+                                    <span className="hidden sm:inline">Archivar</span>
+                                    <span className="sm:hidden">Arch.</span>
+                                </Button>
+                            </>
+                        )}
+
+                        {type === 'pending' && (
+                            <Button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    assignToMe(chat.chat_user_id);
+                                }}
+                                variant="outline"
+                                size="sm"
+                                className="text-[10px] sm:text-xs h-6 py-0"
+                            >
+                                <span className="hidden sm:inline">Asignarme</span>
+                                <span className="sm:hidden">Asignar</span>
+                            </Button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        ));
+    };
 
     if (isLoading) {
         return (
@@ -160,7 +320,7 @@ export default function ChatDashboard() {
             <div className="flex h-[calc(100vh-100px)] items-center justify-center">
                 <div className="text-center">
                     <p className="text-destructive mb-4">{error}</p>
-                    <Button 
+                    <Button
                         onClick={() => window.location.reload()}
                         variant="outline"
                     >
@@ -172,73 +332,63 @@ export default function ChatDashboard() {
     }
 
     return (
-        <div className="flex h-[calc(100vh-180px)] gap-4">
-            {/* Chat list */}
-            <Card className="w-1/3">
-                <ScrollArea className="h-full">
-                    <div className="p-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-semibold">
-                                Chats Activos
-                            </h2>
-                            {activeChats.length > 0 && (
-                                <Badge variant="secondary">
-                                    {activeChats.length}
-                                </Badge>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            {activeChats.length === 0 ? (
-                                <div className="text-center py-8 text-muted-foreground">
-                                    No hay chats activos en este momento
-                                </div>
-                            ) : (
-                                activeChats.map((chat) => (
-                                    <div
-                                        key={chat.chat_user_id}
-                                        onClick={() => selectChat(chat.chat_user_id)}
-                                        className={`p-4 rounded-lg cursor-pointer transition-colors ${
-                                            selectedChat === chat.chat_user_id 
-                                                ? 'bg-accent text-accent-foreground' 
-                                                : 'hover:bg-muted'
-                                        }`}
-                                    >
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <h3 className="font-medium">Usuario {chat.chat_user_id}</h3>
-                                                <p className="text-sm text-muted-foreground mt-1">
-                                                    Chat en vivo
-                                                </p>
-                                            </div>
-                                            <div className="flex flex-col items-end gap-2">
-                                                <Badge variant="outline" className="text-xs">
-                                                    {isConnected ? 'Activo' : 'Desconectado'}
-                                                </Badge>
-                                                {chat.chat_agent_id ? (
-                                                    <Badge variant="secondary" className="text-xs">
-                                                        Asignado a {chat.chat_agent_id}
-                                                    </Badge>
-                                                ) : (
-                                                    <Button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            assignToMe(chat.chat_user_id);
-                                                        }}
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="text-xs"
-                                                    >
-                                                        Asignarme
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
+        <div className="flex flex-col md:flex-row h-[calc(100vh-180px)] gap-2 sm:gap-4">
+            {/* Chat list with tabs */}
+            <Card className="w-full md:w-1/3 mb-2 sm:mb-4 md:mb-0 overflow-hidden">
+                <Tabs defaultValue="active" value={selectedTab} onValueChange={setSelectedTab} className="h-full flex flex-col overflow-hidden">
+                    <div className="p-2 sm:p-4 sm:pb-0">
+                        <TabsList className="w-full min-w-0 grid grid-cols-3 p-1 h-auto">
+                            <TabsTrigger
+                                value="active"
+                                className="flex items-center justify-center gap-0.5 py-1.5 px-0.5 sm:px-1 md:px-2 text-xs sm:text-sm overflow-hidden"
+                            >
+                                <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                <span className="hidden md:inline ml-1 truncate">Activos</span>
+                                {activeChats.length > 0 && (
+                                    <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 min-w-0 h-4 flex items-center justify-center">
+                                        {activeChats.length}
+                                    </Badge>
+                                )}
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="pending"
+                                className="flex items-center justify-center gap-0.5 py-1.5 px-0.5 sm:px-1 md:px-2 text-xs sm:text-sm overflow-hidden"
+                            >
+                                <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                <span className="hidden md:inline ml-1 truncate">Pendientes</span>
+                                {pendingChats.length > 0 && (
+                                    <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 min-w-0 h-4 flex items-center justify-center">
+                                        {pendingChats.length}
+                                    </Badge>
+                                )}
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="archived"
+                                className="flex items-center justify-center gap-0.5 py-1.5 px-0.5 sm:px-1 md:px-2 text-xs sm:text-sm overflow-hidden"
+                            >
+                                <Archive className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                <span className="hidden md:inline ml-1 truncate">Archivados</span>
+                                {archivedChats.length > 0 && (
+                                    <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 min-w-0 h-4 flex items-center justify-center">
+                                        {archivedChats.length}
+                                    </Badge>
+                                )}
+                            </TabsTrigger>
+                        </TabsList>
                     </div>
-                </ScrollArea>
+
+                    <ScrollArea className="flex-1 px-2 sm:px-4 pt-2">
+                        <TabsContent value="active" className="mt-2 space-y-2">
+                            {renderChatList(activeChats, 'active')}
+                        </TabsContent>
+                        <TabsContent value="pending" className="mt-2 space-y-2">
+                            {renderChatList(pendingChats, 'pending')}
+                        </TabsContent>
+                        <TabsContent value="archived" className="mt-2 space-y-2">
+                            {renderChatList(archivedChats, 'archived')}
+                        </TabsContent>
+                    </ScrollArea>
+                </Tabs>
             </Card>
 
             {/* Chat messages */}
@@ -250,9 +400,23 @@ export default function ChatDashboard() {
                                 <h3 className="text-lg font-semibold">
                                     Chat con Usuario {selectedChat}
                                 </h3>
-                                <Badge variant={isConnected ? 'default' : 'destructive'}>
-                                    {isConnected ? 'Conectado' : 'Desconectado'}
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                    <Badge variant={isConnected ? 'default' : 'destructive'}>
+                                        {isConnected ? 'Conectado' : 'Desconectado'}
+                                    </Badge>
+
+                                    {activeChats.some(chat => chat.chat_user_id === selectedChat) && (
+                                        <Button
+                                            onClick={() => archiveChat(selectedChat)}
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs"
+                                        >
+                                            <Archive className="h-3 w-3 mr-1" />
+                                            Archivar chat
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <ScrollArea className="flex-1 p-4">
@@ -264,11 +428,10 @@ export default function ChatDashboard() {
                                             className={`flex ${msg.sender === 'agent' ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div
-                                                className={`max-w-[70%] rounded-lg p-3 ${
-                                                    msg.sender === 'agent'
+                                                className={`max-w-[70%] rounded-lg p-3 ${msg.sender === 'agent'
                                                         ? 'bg-primary text-primary-foreground'
                                                         : 'bg-muted'
-                                                }`}
+                                                    }`}
                                             >
                                                 <div className="flex flex-col">
                                                     <span className="text-sm font-medium mb-1">
@@ -290,11 +453,20 @@ export default function ChatDashboard() {
                                 <div ref={messagesEndRef} />
                             </div>
                         </ScrollArea>
-                        <ChatInput
-                            chatId={selectedChat}
-                            agentId={agentId}
-                            socket={socket}
-                        />
+                        {/* Solo mostrar el input de mensaje si el chat está activo */}
+                        {activeChats.some(chat => chat.chat_user_id === selectedChat) ? (
+                            <ChatInput
+                                chatId={selectedChat}
+                                agentId={agentId}
+                                socket={socket}
+                            />
+                        ) : (
+                            <div className="p-4 border-t bg-muted/50 text-center text-sm">
+                                {archivedChats.some(chat => chat.chat_user_id === selectedChat)
+                                    ? 'Este chat está archivado'
+                                    : 'Asígnate este chat para poder enviar mensajes'}
+                            </div>
+                        )}
                     </>
                 ) : (
                     <div className="h-full flex items-center justify-center text-muted-foreground">

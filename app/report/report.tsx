@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, TooltipProps } from 'recharts';
 import { Clock, Users, MessageSquare, Ticket, AlertCircle } from 'lucide-react';
 import { reportApi, StatusDistribution, TicketsByAgent, TicketsTrend, MessageVolume, MessageDistribution, ResponseTimeByAgent, LoginActivity, UserRole, NewUsersByMonth, DashboardSummary } from './services/report.api';
-
+import { useTheme } from 'next-themes';
 
 // Interfaces para los props de componentes
 interface SummaryCardProps {
@@ -32,6 +32,15 @@ interface ChartCardProps {
 interface PieChartLabelProps {
     name: string;
     percent: number;
+    cx?: number;
+    cy?: number;
+    midAngle?: number;
+    innerRadius?: number;
+    outerRadius?: number;
+    index?: number;
+    value?: number;
+    fill?: string;
+    payload?: StatusDistribution | TicketsByAgent | MessageDistribution | UserRole;
 }
 
 // Define un tipo genérico para los datos de gráficos
@@ -39,11 +48,45 @@ type ChartData = StatusDistribution[] | TicketsByAgent[] | TicketsTrend[] |
                 MessageVolume[] | MessageDistribution[] | ResponseTimeByAgent[] | 
                 LoginActivity[] | UserRole[] | NewUsersByMonth[];
 
+// Define una interfaz para los errores
+interface ReportErrors {
+    [key: string]: string | null;
+}
+
 // Definición de colores para gráficos
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+const LIGHT_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+const DARK_COLORS = ['#4dabf5', '#34d399', '#fbbf24', '#fb923c', '#a78bfa'];
 
 // Pantalla principal de reportes
 const ReportsDashboard = () => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+    
+    // Colores basados en el tema
+    const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
+    
+    // Personalización del tooltip para tener el texto correcto en modo oscuro
+    const customTooltip = ({ active, payload }: TooltipProps<number, string>) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className={`bg-white dark:bg-gray-800 p-2 border border-gray-200 dark:border-gray-700 rounded shadow`}>
+                    {payload.map((entry, index) => (
+                        <div key={`item-${index}`} className="flex items-center">
+                            <div 
+                                className="w-3 h-3 mr-2" 
+                                style={{ backgroundColor: entry.color }} 
+                            />
+                            <p className="text-gray-700 dark:text-gray-200">
+                                {`${entry.name}: ${entry.value}`}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+        return null;
+    };
+    
     // Estados para almacenar datos
     const [ticketStatusData, setTicketStatusData] = useState<StatusDistribution[] | null>(null);
     const [ticketAgentData, setTicketAgentData] = useState<TicketsByAgent[] | null>(null);
@@ -57,7 +100,7 @@ const ReportsDashboard = () => {
     const [summaryData, setSummaryData] = useState<DashboardSummary | null>(null);
 
     // Estados para manejo de errores y carga
-    const [errors, setErrors] = useState<Record<string, string | null>>({});
+    const [errors, setErrors] = useState<ReportErrors>({});
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('tickets');
 
@@ -160,7 +203,7 @@ const ReportsDashboard = () => {
         errorKey: string,
         renderFunction: (validData: T) => React.ReactNode,
         emptyMessage: string = "No hay datos disponibles"
-    ) => {
+    ): React.ReactNode => {
         if (errors[errorKey]) {
             return (
                 <div className="flex flex-col items-center justify-center h-64 text-red-500">
@@ -172,7 +215,7 @@ const ReportsDashboard = () => {
 
         if (!data || (Array.isArray(data) && data.length === 0)) {
             return (
-                <div className="flex items-center justify-center h-64 text-gray-500">
+                <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
                     {emptyMessage}
                 </div>
             );
@@ -184,14 +227,14 @@ const ReportsDashboard = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <div className="text-xl">Cargando datos...</div>
+                <div className="text-xl dark:text-gray-200">Cargando datos...</div>
             </div>
         );
     }
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
-            <h1 className="text-2xl font-bold mb-6"></h1>
+        <div className="p-6 min-h-screen">
+            <h1 className="text-2xl font-bold mb-6 dark:text-white"></h1>
 
             {/* Tarjetas de resumen */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -199,31 +242,31 @@ const ReportsDashboard = () => {
                     title="Total de Tickets"
                     value={summaryData?.totalTickets?.value || 0}
                     trend={summaryData?.totalTickets?.trend || "0%"}
-                    icon={<Ticket className="h-8 w-8 text-blue-500" />}
+                    icon={<Ticket className="h-8 w-8 text-blue-500 dark:text-blue-400" />}
                 />
                 <SummaryCard
                     title="Chats Activos"
                     value={summaryData?.activeChats?.value || 0}
                     trend={summaryData?.activeChats?.trend || "0%"}
-                    icon={<MessageSquare className="h-8 w-8 text-green-500" />}
+                    icon={<MessageSquare className="h-8 w-8 text-green-500 dark:text-green-400" />}
                 />
                 <SummaryCard
                     title="Usuarios Totales"
                     value={summaryData?.totalUsers?.value || 0}
                     trend={summaryData?.totalUsers?.trend || "0%"}
-                    icon={<Users className="h-8 w-8 text-purple-500" />}
+                    icon={<Users className="h-8 w-8 text-purple-500 dark:text-purple-400" />}
                 />
                 <SummaryCard
                     title="Tiempo Promedio Respuesta"
                     value={summaryData?.avgResponseTime?.value || "0 min"}
                     trend={summaryData?.avgResponseTime?.trend || "0%"}
                     trendPositive={summaryData?.avgResponseTime?.trendPositive || false}
-                    icon={<Clock className="h-8 w-8 text-orange-500" />}
+                    icon={<Clock className="h-8 w-8 text-orange-500 dark:text-orange-400" />}
                 />
             </div>
 
             {/* Tabs para navegación */}
-            <div className="flex border-b mb-6">
+            <div className="flex border-b mb-6 dark:border-gray-700">
                 <Tab active={activeTab === 'tickets'} onClick={() => setActiveTab('tickets')}>Tickets</Tab>
                 <Tab active={activeTab === 'chats'} onClick={() => setActiveTab('chats')}>Chats</Tab>
                 <Tab active={activeTab === 'users'} onClick={() => setActiveTab('users')}>Usuarios</Tab>
@@ -257,7 +300,7 @@ const ReportsDashboard = () => {
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip />
+                                        <Tooltip content={customTooltip} />
                                     </PieChart>
                                 </ResponsiveContainer>
                             )
@@ -278,11 +321,11 @@ const ReportsDashboard = () => {
                                         data={data}
                                         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                                     >
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="name" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Bar dataKey="tickets" fill="#8884d8" />
+                                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#e5e7eb'} />
+                                        <XAxis dataKey="name" stroke={isDark ? '#9ca3af' : '#6b7280'} />
+                                        <YAxis stroke={isDark ? '#9ca3af' : '#6b7280'} />
+                                        <Tooltip contentStyle={isDark ? { backgroundColor: '#1f2937', border: '1px solid #374151', color: '#e5e7eb' } : undefined} />
+                                        <Bar dataKey="tickets" fill={isDark ? '#4dabf5' : '#8884d8'} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             )
@@ -304,15 +347,15 @@ const ReportsDashboard = () => {
                                         data={data}
                                         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                                     >
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="mes" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Legend />
+                                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#e5e7eb'} />
+                                        <XAxis dataKey="mes" stroke={isDark ? '#9ca3af' : '#6b7280'} />
+                                        <YAxis stroke={isDark ? '#9ca3af' : '#6b7280'} />
+                                        <Tooltip contentStyle={isDark ? { backgroundColor: '#1f2937', border: '1px solid #374151', color: '#e5e7eb' } : undefined} />
+                                        <Legend wrapperStyle={isDark ? { color: '#e5e7eb' } : undefined} />
                                         <Line
                                             type="monotone"
                                             dataKey="cantidad"
-                                            stroke="#8884d8"
+                                            stroke={isDark ? '#4dabf5' : '#8884d8'}
                                             activeDot={{ r: 8 }}
                                         />
                                     </LineChart>
@@ -339,11 +382,11 @@ const ReportsDashboard = () => {
                                         data={data}
                                         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                                     >
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="hora" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Bar dataKey="mensajes" fill="#00C49F" />
+                                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#e5e7eb'} />
+                                        <XAxis dataKey="hora" stroke={isDark ? '#9ca3af' : '#6b7280'} />
+                                        <YAxis stroke={isDark ? '#9ca3af' : '#6b7280'} />
+                                        <Tooltip contentStyle={isDark ? { backgroundColor: '#1f2937', border: '1px solid #374151', color: '#e5e7eb' } : undefined} />
+                                        <Bar dataKey="mensajes" fill={isDark ? '#34d399' : '#00C49F'} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             )
@@ -375,7 +418,7 @@ const ReportsDashboard = () => {
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip />
+                                        <Tooltip content={customTooltip} />
                                     </PieChart>
                                 </ResponsiveContainer>
                             )
@@ -397,11 +440,16 @@ const ReportsDashboard = () => {
                                         data={data}
                                         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                                     >
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="name" />
-                                        <YAxis label={{ value: 'Minutos', angle: -90, position: 'insideLeft' }} />
-                                        <Tooltip />
-                                        <Bar dataKey="tiempo" fill="#FF8042" />
+                                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#e5e7eb'} />
+                                        <XAxis dataKey="name" stroke={isDark ? '#9ca3af' : '#6b7280'} />
+                                        <YAxis stroke={isDark ? '#9ca3af' : '#6b7280'} label={{ 
+                                            value: 'Minutos', 
+                                            angle: -90, 
+                                            position: 'insideLeft',
+                                            style: { fill: isDark ? '#9ca3af' : '#6b7280' } 
+                                        }} />
+                                        <Tooltip contentStyle={isDark ? { backgroundColor: '#1f2937', border: '1px solid #374151', color: '#e5e7eb' } : undefined} />
+                                        <Bar dataKey="tiempo" fill={isDark ? '#fb923c' : '#FF8042'} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             )
@@ -426,11 +474,11 @@ const ReportsDashboard = () => {
                                         data={data}
                                         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                                     >
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="dia" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Line type="monotone" dataKey="logins" stroke="#8884d8" activeDot={{ r: 8 }} />
+                                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#e5e7eb'} />
+                                        <XAxis dataKey="dia" stroke={isDark ? '#9ca3af' : '#6b7280'} />
+                                        <YAxis stroke={isDark ? '#9ca3af' : '#6b7280'} />
+                                        <Tooltip contentStyle={isDark ? { backgroundColor: '#1f2937', border: '1px solid #374151', color: '#e5e7eb' } : undefined} />
+                                        <Line type="monotone" dataKey="logins" stroke={isDark ? '#4dabf5' : '#8884d8'} activeDot={{ r: 8 }} />
                                     </LineChart>
                                 </ResponsiveContainer>
                             )
@@ -462,7 +510,7 @@ const ReportsDashboard = () => {
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip />
+                                        <Tooltip content={customTooltip} />
                                     </PieChart>
                                 </ResponsiveContainer>
                             )
@@ -484,11 +532,11 @@ const ReportsDashboard = () => {
                                         data={data}
                                         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                                     >
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="mes" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Bar dataKey="cantidad" fill="#8884d8" />
+                                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#e5e7eb'} />
+                                        <XAxis dataKey="mes" stroke={isDark ? '#9ca3af' : '#6b7280'} />
+                                        <YAxis stroke={isDark ? '#9ca3af' : '#6b7280'} />
+                                        <Tooltip contentStyle={isDark ? { backgroundColor: '#1f2937', border: '1px solid #374151', color: '#e5e7eb' } : undefined} />
+                                        <Bar dataKey="cantidad" fill={isDark ? '#4dabf5' : '#8884d8'} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             )
@@ -502,14 +550,14 @@ const ReportsDashboard = () => {
 
 // Componentes auxiliares
 const SummaryCard = ({ title, value, trend, trendPositive = true, icon }: SummaryCardProps) => (
-    <div className="bg-white p-6 rounded-lg shadow">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <div className="flex justify-between items-center mb-4">
-            <h3 className="text-gray-500 text-sm font-medium">{title}</h3>
+            <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{title}</h3>
             {icon}
         </div>
         <div className="flex items-baseline">
-            <div className="text-2xl font-semibold">{value}</div>
-            <div className={`ml-2 text-sm ${trendPositive ? 'text-green-500' : 'text-red-500'}`}>
+            <div className="text-2xl font-semibold dark:text-white">{value}</div>
+            <div className={`ml-2 text-sm ${trendPositive ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
                 {trend}
             </div>
         </div>
@@ -518,8 +566,11 @@ const SummaryCard = ({ title, value, trend, trendPositive = true, icon }: Summar
 
 const Tab = ({ children, active, onClick }: TabProps) => (
     <button
-        className={`px-6 py-2 font-medium text-sm ${active ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500'
-            }`}
+        className={`px-6 py-2 font-medium text-sm ${
+            active 
+                ? 'border-b-2 border-blue-500 text-blue-500 dark:text-blue-400 dark:border-blue-400' 
+                : 'text-gray-500 dark:text-gray-400'
+        }`}
         onClick={onClick}
     >
         {children}
@@ -527,12 +578,12 @@ const Tab = ({ children, active, onClick }: TabProps) => (
 );
 
 const ChartCard = ({ title, children, fullWidth = false, isLoading = false, error = null }: ChartCardProps) => (
-    <div className={`bg-white p-6 rounded-lg shadow ${fullWidth ? 'col-span-full' : ''}`}>
+    <div className={`bg-white dark:bg-gray-800 p-6 rounded-lg shadow ${fullWidth ? 'col-span-full' : ''}`}>
         <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">{title}</h3>
-            {isLoading && <div className="text-sm text-gray-500">Cargando...</div>}
+            <h3 className="text-lg font-medium dark:text-white">{title}</h3>
+            {isLoading && <div className="text-sm text-gray-500 dark:text-gray-400">Cargando...</div>}
             {error && (
-                <div className="flex items-center text-red-500 text-sm">
+                <div className="flex items-center text-red-500 dark:text-red-400 text-sm">
                     <AlertCircle className="h-4 w-4 mr-1" />
                     Error al cargar datos
                 </div>

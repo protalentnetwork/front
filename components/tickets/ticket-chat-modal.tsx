@@ -14,6 +14,7 @@ import { Send } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
 import { toast } from "sonner"
+import { TicketUser } from "./tickets-client"
 
 interface CommentMetadata {
   system: {
@@ -60,11 +61,6 @@ interface CommentsResponse {
   next_page: string | null
   previous_page: string | null
   count: number
-}
-
-interface TicketUser {
-  name: string
-  email: string
 }
 
 interface TicketChatModalProps {
@@ -224,6 +220,8 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
         }),
       })
 
+      console.log('Response status:', response.status, response.statusText)
+      
       if (!response.ok) {
         const errorText = await response.text()
         console.error('Server response:', errorText)
@@ -310,10 +308,10 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
       <DialogContent className="sm:max-w-[700px] h-[80vh] flex flex-col">
         <DialogHeader className="border-b pb-4">
           <DialogTitle className="text-lg font-semibold">
-            Chat con {user.name}
+            Chat con {user?.name || 'Usuario'}
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
-            {user.email}
+            {user?.email || 'Sin email'} - Ticket #{ticketId}
           </DialogDescription>
         </DialogHeader>
 
@@ -374,6 +372,10 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
         {/* Message Input */}
         <div className="border-t pt-4">
           <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleSendMessage()
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               handleSendMessage()

@@ -4,6 +4,7 @@ import * as React from "react"
 import { useMemo } from "react"
 import {
   CircleHelp,
+  LampDesk,
   Landmark,
   MessagesSquare,
   PieChart,
@@ -33,13 +34,15 @@ const navMainItems = [
     url: "/dashboard/transfer-accounts",
     icon: Landmark,
   },
-];
-
-const reportsItems = [
   {
-    name: "Reportes",
+    title: "Reportes",
     url: "/dashboard/reports",
     icon: PieChart,
+  },
+  {
+    title: "Oficinas",
+    url: "/dashboard/office-configuration",
+    icon: LampDesk,
   },
 ];
 
@@ -76,11 +79,6 @@ const othersItems = [
     icon: CircleHelp,
   },
   {
-    name: "Configuración oficina",
-    url: "/dashboard/office-configuration",
-    icon: CircleHelp,
-  },
-  {
     name: "Descarga de cuentas",
     url: "/dashboard/download-accounts",
     icon: CircleHelp,
@@ -114,7 +112,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     return {
       navMain: navMainItems,
-      reports: reportsItems,
       tickets: ticketsItems,
       projects: projectsItems,
       others: othersItems
@@ -126,9 +123,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         {filteredItems.navMain.length > 0 && (
           <NavMain items={filteredItems.navMain} />
-        )}
-        {filteredItems.reports.length > 0 && (
-          <NavProjects projects={filteredItems.reports} title="Reportes" />
         )}
         {filteredItems.tickets.length > 0 && (
           <NavProjects projects={filteredItems.tickets} title="Tickets" />

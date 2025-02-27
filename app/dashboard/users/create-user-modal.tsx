@@ -147,7 +147,7 @@ export function CreateUserModal({ onUserCreated }: { onUserCreated?: () => void 
                     </div>
 
                     <div className="flex justify-end space-x-2 pt-4">
-                        <Button variant="outline" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" type="button" onClick={() => setIsOpen(false)}>
                             Cancelar
                         </Button>
                         <Button type="submit">

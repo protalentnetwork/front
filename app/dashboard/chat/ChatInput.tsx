@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Paperclip } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
 import { Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
@@ -42,10 +42,17 @@ export default function ChatInput({ chatId, agentId, socket }: ChatInputProps) {
                 throw new Error('No hay conexión con el servidor');
             }
 
-            socket.emit('sendMessage', {
-                chatId,
+            console.log('Socket conectado:', socket.connected);
+            console.log('Socket ID:', socket.id);
+            console.log('Enviando mensaje a través de Socket:', {
+                userId: chatId,
                 message: input.trim(),
-                sender: 'agent',
+                agentId
+            });
+
+            socket.emit('message', {
+                userId: chatId,
+                message: input.trim(),
                 agentId
             });
 
@@ -86,16 +93,6 @@ export default function ChatInput({ chatId, agentId, socket }: ChatInputProps) {
                         disabled={isSending || !chatId}
                         rows={1}
                     />
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        className="absolute right-2 bottom-2 h-6 w-6"
-                        disabled={isSending || !chatId}
-                        title="Adjuntar archivo"
-                    >
-                        <Paperclip className="h-4 w-4" />
-                        <span className="sr-only">Adjuntar archivo</span>
-                    </Button>
                 </div>
                 <Button
                     onClick={handleSendMessage}
