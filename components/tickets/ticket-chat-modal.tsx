@@ -14,6 +14,7 @@ import { Send } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
 import { toast } from "sonner"
+import { TicketUser } from "./tickets-client"
 
 interface CommentMetadata {
   system: {
@@ -60,11 +61,6 @@ interface CommentsResponse {
   count: number
 }
 
-interface TicketUser {
-  name: string
-  email: string
-}
-
 interface TicketChatModalProps {
   isOpen: boolean
   onClose: () => void
@@ -85,9 +81,15 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId }: TicketChatM
         setIsLoading(true)
         setError(null)
         const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL
-        const response = await fetch(`${baseUrl}/zendesk/tickets/${ticketId}/comments`)
+        const endpoint = `/zendesk/tickets/${ticketId}/comments`
+        const url = `${baseUrl}${endpoint}`
+        
+        console.log('Fetching comments from:', url)
+        
+        const response = await fetch(url)
         
         if (!response.ok) {
+          console.error('Error response:', response.status, response.statusText)
           throw new Error(`Error ${response.status}: ${response.statusText}`)
         }
         
@@ -129,7 +131,11 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId }: TicketChatM
         }),
       })
 
+      console.log('Response status:', response.status, response.statusText)
+      
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Error response body:', errorText)
         throw new Error(`Error ${response.status}: ${response.statusText}`)
       }
       
@@ -149,11 +155,11 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId }: TicketChatM
       }, 100)
     } catch (error) {
       console.error('Error sending message:', error)
-      setError('Error al enviar el mensaje. Por favor, intenta de nuevo.')
+      setError('Error al enviar el mensaje. Por favor, contacta al soporte técnico.')
       
       // Usamos setTimeout para evitar problemas de actualización de estado
       setTimeout(() => {
-        toast.error('Error al enviar el mensaje')
+        toast.error('Error al enviar el mensaje. Detalle en consola.')
       }, 100)
     } finally {
       setIsSending(false)
@@ -180,10 +186,10 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId }: TicketChatM
       <DialogContent className="sm:max-w-[700px] h-[80vh] flex flex-col">
         <DialogHeader className="border-b pb-4">
           <DialogTitle className="text-lg font-semibold">
-            Chat con {user.name}
+            Chat con {user?.name || 'Usuario'}
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
-            {user.email}
+            {user?.email || 'Sin email'} - Ticket #{ticketId}
           </DialogDescription>
         </DialogHeader>
 
@@ -229,7 +235,10 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId }: TicketChatM
         {/* Message Input */}
         <div className="border-t pt-4">
           <form
-            onSubmit={handleSendMessage}
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleSendMessage()
+            }}
             className="flex gap-2"
           >
             <Input
