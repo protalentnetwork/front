@@ -42,6 +42,7 @@ interface TicketsTableProps {
 
 export function TicketsTable({ tickets = [] }: TicketsTableProps) {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
+  const agentId = "12345678";
 
   const formatDate = (dateString: string) => {
     if (!dateString) {
@@ -111,7 +112,7 @@ export function TicketsTable({ tickets = [] }: TicketsTableProps) {
           </TableHeader>
           <TableBody>
             {tickets.map((ticket, index) => (
-              <TableRow 
+              <TableRow
                 key={ticket.id}
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => setSelectedTicket(ticket)}
@@ -175,6 +176,7 @@ export function TicketsTable({ tickets = [] }: TicketsTableProps) {
           onClose={() => setSelectedTicket(null)}
           user={selectedTicket.user}
           ticketId={selectedTicket.id}
+          agentId={agentId} // Pasar el ID del agente
         />
       )}
     </>
