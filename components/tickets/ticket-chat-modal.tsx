@@ -98,7 +98,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Función para obtener info del ticket (incluyendo requester_id)
-  const fetchTicketInfo = async () => {
+  const fetchTicketInfo = useCallback(async () => {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL
       const response = await fetch(`${baseUrl}/zendesk/tickets/${ticketId}`)
@@ -115,7 +115,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
       console.error('Error fetching ticket info:', error)
       return null
     }
-  }
+  }, [ticketId]);
 
   const fetchComments = useCallback(async () => {
     try {
@@ -178,7 +178,7 @@ export function TicketChatModal({ isOpen, onClose, user, ticketId, agentId }: Ti
       setIsLoading(false)
       scrollToBottom()
     }
-  }, [ticketId, agentId, comments]);
+  }, [ticketId, agentId, comments, fetchTicketInfo]);
 
   useEffect(() => {
     if (isOpen && ticketId) {
