@@ -26,9 +26,8 @@ const ChatCliente: React.FC<ChatProps> = ({ chatId }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isConnected, setIsConnected] = useState(false);
-    const messagesEndRef = useRef<HTMLDivElement>(null); // Para auto-scroll
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll al final de los mensajes
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
@@ -77,7 +76,7 @@ const ChatCliente: React.FC<ChatProps> = ({ chatId }) => {
             setMessages((prev) => [
                 ...prev,
                 {
-                    id: Date.now().toString(), // ID temporal
+                    id: Date.now().toString(),
                     userId: chatId,
                     message: input,
                     sender: 'client',
@@ -92,7 +91,6 @@ const ChatCliente: React.FC<ChatProps> = ({ chatId }) => {
 
     return (
         <div className="flex flex-col h-[600px] max-w-md mx-auto bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
-            {/* Encabezado */}
             <div className="bg-blue-600 p-4 flex justify-between items-center text-white">
                 <h3 className="text-lg font-semibold">Chat con Soporte</h3>
                 <span
@@ -101,8 +99,6 @@ const ChatCliente: React.FC<ChatProps> = ({ chatId }) => {
                     title={isConnected ? 'Conectado' : 'Desconectado'}
                 />
             </div>
-
-            {/* Área de Mensajes */}
             <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
                 {isConnected ? (
                     messages.length > 0 ? (
@@ -133,8 +129,6 @@ const ChatCliente: React.FC<ChatProps> = ({ chatId }) => {
                 )}
                 <div ref={messagesEndRef} />
             </div>
-
-            {/* Input y Botón */}
             <div className="p-4 bg-gray-100 border-t flex items-center space-x-2">
                 <input
                     value={input}
