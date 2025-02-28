@@ -6,14 +6,23 @@ import { Button } from '@/components/ui/button';
 import { Send, Loader2 } from 'lucide-react';
 import { Socket } from 'socket.io-client';
 import { toast } from 'sonner';
+import { nanoid } from 'nanoid';
 
 interface ChatInputProps {
     chatId: string | null;
     agentId: string;
     socket: Socket;
+    conversationId?: string;
+    onLocalMessageSent?: (message: any) => void;
 }
 
-export default function ChatInput({ chatId, agentId, socket }: ChatInputProps) {
+export default function ChatInput({ 
+    chatId, 
+    agentId, 
+    socket, 
+    conversationId,
+    onLocalMessageSent 
+}: ChatInputProps) {
     const [input, setInput] = useState('');
     const [isSending, setIsSending] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -34,9 +43,11 @@ export default function ChatInput({ chatId, agentId, socket }: ChatInputProps) {
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!input.trim() || isSending) return;
+        if (!input.trim() || isSending || !conversationId) return;
 
+        const messageText = input.trim();
         setIsSending(true);
+        
         try {
             if (!socket || !socket.connected) {
                 throw new Error('No hay conexión con el servidor');
@@ -46,14 +57,33 @@ export default function ChatInput({ chatId, agentId, socket }: ChatInputProps) {
             console.log('Socket ID:', socket.id);
             console.log('Enviando mensaje a través de Socket:', {
                 userId: chatId,
-                message: input.trim(),
-                agentId
+                message: messageText,
+                agentId,
+                conversationId
             });
 
+            // Create a temporary message for optimistic UI update
+            const tempMessage = {
+                id: nanoid(),
+                userId: chatId || '',
+                message: messageText,
+                sender: 'agent',
+                agentId,
+                timestamp: new Date().toISOString(),
+                conversationId
+            };
+
+            // Immediately update UI with the sent message
+            if (onLocalMessageSent) {
+                onLocalMessageSent(tempMessage);
+            }
+
+            // Send message to server
             socket.emit('message', {
                 userId: chatId,
-                message: input.trim(),
-                agentId
+                message: messageText,
+                agentId,
+                conversationId
             });
 
             setInput('');
@@ -90,13 +120,13 @@ export default function ChatInput({ chatId, agentId, socket }: ChatInputProps) {
                         onKeyDown={handleKeyDown}
                         placeholder="Escribe un mensaje..."
                         className="resize-none pr-10 min-h-[52px] max-h-[200px] overflow-y-auto"
-                        disabled={isSending || !chatId}
+                        disabled={isSending || !chatId || !conversationId}
                         rows={1}
                     />
                 </div>
                 <Button
                     onClick={handleSendMessage}
-                    disabled={!input.trim() || isSending || !chatId}
+                    disabled={!input.trim() || isSending || !chatId || !conversationId}
                     size="icon"
                     className="h-10 w-10"
                 >
@@ -108,6 +138,11 @@ export default function ChatInput({ chatId, agentId, socket }: ChatInputProps) {
                     <span className="sr-only">Enviar mensaje</span>
                 </Button>
             </div>
+            {!conversationId && chatId && (
+                <p className="text-xs text-red-500 mt-2">
+                    No se puede enviar mensajes sin ID de conversación
+                </p>
+            )}
         </div>
     );
 }
