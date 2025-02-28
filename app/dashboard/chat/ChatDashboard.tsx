@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Archive, Clock, MessageSquare } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ChatInput from './ChatInput';
+import { useAuth } from '@/hooks/useAuth';
 
 // Types
 interface Message {
@@ -28,6 +29,7 @@ interface ChatData {
     chat_user_id: string;
     chat_agent_id: string | null;
     status?: 'active' | 'pending' | 'archived';
+    conversationId?: string;
 }
 
 // Socket configuration
@@ -50,8 +52,13 @@ export default function ChatDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isConnected, setIsConnected] = useState(false);
+    const [assigningChat, setAssigningChat] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const agentId = 'agent1'; // TODO: Get from auth context
+    
+    // Obtener el ID del agente desde el contexto de autenticación
+    const { user, isAuthenticated } = useAuth();
+    const agentId = user?.id || 'guest'; // Usar el ID del usuario autenticado o 'guest' como fallback
+    const agentName = user?.name || 'Agente'; // Use for display purposes
 
     const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -70,7 +77,12 @@ export default function ChatDashboard() {
             console.log('Socket transport:', socket.io.engine.transport.name);
             console.log('¿Socket está conectado?', socket.connected);
 
-            socket.emit('joinAgent', { agentId });
+            // Join as agent with more complete information
+            socket.emit('joinAgent', { 
+                agentId,
+                agentName: user?.name || 'Agente sin nombre',
+                agentRole: user?.role || 'guest' 
+            });
 
             // Usamos setTimeout para evitar problemas de actualización de estado
             setTimeout(() => {
@@ -102,20 +114,45 @@ export default function ChatDashboard() {
             const active: ChatData[] = [];
             const pending: ChatData[] = [];
 
-            // Clasificar los chats según si tienen agente asignado
+            // Classify chats based on agent assignment
             if (Array.isArray(chats)) {
                 chats.forEach(chat => {
                     if (chat.chat_agent_id) {
-                        active.push({ ...chat, status: 'active' });
+                        active.push({ 
+                            ...chat, 
+                            status: 'active',
+                            conversationId: chat.conversationId
+                        });
                     } else {
-                        pending.push({ ...chat, status: 'pending' });
+                        pending.push({ 
+                            ...chat, 
+                            status: 'pending',
+                            conversationId: chat.conversationId
+                        });
                     }
                 });
             }
+            console.log('Chats activos:', active);
+            console.log('Chats pendientes:', pending);
 
             setActiveChats(active);
             setPendingChats(pending);
             setIsLoading(false);
+        }
+
+        // Add a listener for chat assignment confirmation
+        function onAgentAssigned(data: { userId: string; agentId: string; success: boolean }) {
+            if (data.success && data.agentId === agentId) {
+                console.log('Chat assigned successfully:', data);
+                // You may want to refresh the chat lists here if needed
+                socket.emit('getActiveChats');
+            }
+        }
+
+        // Add a listener for chat assignment failure
+        function onAssignmentError(error: { message: string }) {
+            console.error('Assignment error:', error);
+            toast.error(`Error de asignación: ${error.message}`);
         }
 
         function onArchivedChats(chats: ChatData[]) {
@@ -167,6 +204,8 @@ export default function ChatDashboard() {
         socket.on('archivedChats', onArchivedChats);
         socket.on('messageHistory', onMessageHistory);
         socket.on('newMessage', onNewMessage);
+        socket.on('agentAssigned', onAgentAssigned);
+        socket.on('assignmentError', onAssignmentError);
 
         // Solicitar chats activos y archivados al conectar
         if (socket.connected) {
@@ -183,6 +222,8 @@ export default function ChatDashboard() {
             socket.off('archivedChats', onArchivedChats);
             socket.off('messageHistory', onMessageHistory);
             socket.off('newMessage', onNewMessage);
+            socket.off('agentAssigned', onAgentAssigned);
+            socket.off('assignmentError', onAssignmentError);
         };
     }, [selectedChat, scrollToBottom, agentId, activeChats, pendingChats]);
 
@@ -192,24 +233,52 @@ export default function ChatDashboard() {
         socket.emit('joinChat', { userId });
     }, [agentId]);
 
-    const assignToMe = useCallback((userId: string) => {
-        socket.emit('assignAgent', { userId, agentId });
-        selectChat(userId);
+    const assignToMe = useCallback((userId: string, conversationId: string) => {
+        // Show loading toast and set loading state
+        const loadingToast = toast.loading('Asignando chat...');
+        setAssigningChat(userId);
+        
+        // Make sure we have a valid agent ID from the current user
+        if (!isAuthenticated || !user?.id) {
+            toast.dismiss(loadingToast);
+            setAssigningChat(null);
+            toast.error('No se pudo asignar el chat: Usuario no autenticado');
+            return;
+        }
 
-        // Mover el chat de pendientes a activos
-        setPendingChats(prev => prev.filter(chat => chat.chat_user_id !== userId));
-        setActiveChats(prev => [
-            ...prev,
-            {
-                chat_user_id: userId,
-                chat_agent_id: agentId,
-                status: 'active'
+        // Emit assignAgent event
+        socket.emit('assignAgent', { 
+            userId, 
+            agentId, 
+            conversationId,
+            agentName: user.name 
+        }, (response: { success: boolean; error?: string }) => {
+            toast.dismiss(loadingToast);
+            setAssigningChat(null);
+            
+            if (response && response.success) {
+                // Move chat from pending to active
+                setPendingChats(prev => prev.filter(chat => chat.chat_user_id !== userId));
+                setActiveChats(prev => [
+                    ...prev,
+                    {
+                        chat_user_id: userId,
+                        chat_agent_id: agentId,
+                        status: 'active',
+                        conversationId
+                    }
+                ]);
+                
+                // Switch to active tab and select the chat
+                setSelectedTab('active');
+                selectChat(userId);
+                
+                toast.success(`Chat asignado correctamente a ${user.name}`);
+            } else {
+                toast.error(`Error al asignar el chat: ${response?.error || 'Error desconocido'}`);
             }
-        ]);
-
-        // Cambiar a la pestaña de activos
-        setSelectedTab('active');
-    }, [agentId, selectChat]);
+        });
+    }, [agentId, selectChat, isAuthenticated, user]);
 
     const archiveChat = useCallback((userId: string) => {
         socket.emit('archiveChat', { userId, agentId });
@@ -291,14 +360,34 @@ export default function ChatDashboard() {
                             <Button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    assignToMe(chat.chat_user_id);
+                                    if (!isAuthenticated) {
+                                        toast.error('Debes iniciar sesión para asignarte un chat');
+                                        return;
+                                    }
+                                    
+                                    if (chat.conversationId) {
+                                        assignToMe(chat.chat_user_id, chat.conversationId);
+                                    } else {
+                                        toast.error('No se pudo asignar el chat: ID de conversación no disponible');
+                                    }
                                 }}
                                 variant="outline"
                                 size="sm"
                                 className="text-[10px] sm:text-xs h-6 py-0"
+                                disabled={!isAuthenticated || assigningChat === chat.chat_user_id}
                             >
-                                <span className="hidden sm:inline">Asignarme</span>
-                                <span className="sm:hidden">Asignar</span>
+                                {assigningChat === chat.chat_user_id ? (
+                                    <>
+                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                        <span className="hidden sm:inline">Asignando...</span>
+                                        <span className="sm:hidden">...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="hidden sm:inline">Asignarme</span>
+                                        <span className="sm:hidden">Asignar</span>
+                                    </>
+                                )}
                             </Button>
                         )}
                     </div>

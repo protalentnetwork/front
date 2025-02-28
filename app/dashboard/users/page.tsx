@@ -8,7 +8,6 @@ const fetchInternalUsers = async () => {
     cache: 'no-store', // Evitar caché
   })
   if (!response.ok) {
-    console.error('Server error fetching internal users:', response.status, response.statusText)
     return []
   }
   const data = await response.json()
@@ -21,7 +20,6 @@ const fetchExternalUsers = async () => {
     cache: 'no-store', // Evitar caché
   })
   if (!response.ok) {
-    console.error('Server error fetching external users:', response.status, response.statusText)
     return []
   }
   const data = await response.json()
