@@ -343,9 +343,68 @@ export default function ChatDashboard() {
                 conversationId,
                 agentId
             });
-
         } else {
-            console.error(`Could not find conversationId for user: ${userId}`);
+            // If conversation ID is not found in our local state, request it from the server
+            socket.emit('getConversationId', { userId }, (response: { success: boolean; conversationId?: string; error?: string }) => {
+                if (response && response.success && response.conversationId) {
+                    // Update our state with the conversationId we got from the server
+                    setCurrentConversationId(response.conversationId);
+                    
+                    // Also update our local chat lists to include this conversationId
+                    setActiveChats(prev => {
+                        const chatIndex = prev.findIndex(chat => chat.chat_user_id === userId);
+                        if (chatIndex >= 0) {
+                            const updatedChats = [...prev];
+                            updatedChats[chatIndex] = {
+                                ...updatedChats[chatIndex],
+                                conversationId: response.conversationId
+                            };
+                            return updatedChats;
+                        }
+                        return prev;
+                    });
+                    
+                    setPendingChats(prev => {
+                        const chatIndex = prev.findIndex(chat => chat.chat_user_id === userId);
+                        if (chatIndex >= 0) {
+                            const updatedChats = [...prev];
+                            updatedChats[chatIndex] = {
+                                ...updatedChats[chatIndex],
+                                conversationId: response.conversationId
+                            };
+                            return updatedChats;
+                        }
+                        return prev;
+                    });
+                    
+                    setArchivedChats(prev => {
+                        const chatIndex = prev.findIndex(chat => chat.chat_user_id === userId);
+                        if (chatIndex >= 0) {
+                            const updatedChats = [...prev];
+                            updatedChats[chatIndex] = {
+                                ...updatedChats[chatIndex],
+                                conversationId: response.conversationId
+                            };
+                            return updatedChats;
+                        }
+                        return prev;
+                    });
+                    
+                    // Now that we have the conversationId, emit the selectConversation event
+                    socket.emit('selectConversation', {
+                        conversationId: response.conversationId,
+                        agentId
+                    });
+                } else {
+                    const errorMessage = response?.error || 'No se encontró una conversación activa para este usuario';
+                    console.error('Error al obtener ID de conversación:', errorMessage);
+                    
+                    toast.error('No se puede cargar esta conversación', {
+                        description: errorMessage,
+                        duration: 5000
+                    });
+                }
+            });
         }
 
         // Still join the chat room
