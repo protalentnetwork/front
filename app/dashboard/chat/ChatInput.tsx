@@ -13,7 +13,7 @@ interface ChatInputProps {
     agentId: string;
     socket: Socket;
     conversationId?: string;
-    onLocalMessageSent?: (message: any) => void;
+    onLocalMessageSent?: (message: { id: string; userId: string; message: string; sender: string; agentId: string; timestamp: string; conversationId: string }) => void;
 }
 
 export default function ChatInput({ 

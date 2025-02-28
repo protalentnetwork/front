@@ -151,7 +151,7 @@ export default function ChatDashboard() {
             }, 100);
         }
 
-        function onActiveChats(chats: any[]) {
+        function onActiveChats(chats: { userId: string; agentId: string; conversationId: string }[]) {
             const active: ChatData[] = [];
             const pending: ChatData[] = [];
 
@@ -198,7 +198,7 @@ export default function ChatDashboard() {
             toast.error(`Error de asignación: ${error.message}`);
         }
 
-        function onArchivedChats(chats: any[]) {
+        function onArchivedChats(chats: { userId: string; agentId: string; conversationId: string }[]) {
             if (Array.isArray(chats)) {
                 const mapped = chats.map(chat => ({
                     chat_user_id: chat.userId,
