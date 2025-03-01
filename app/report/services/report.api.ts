@@ -49,6 +49,11 @@ export interface NewUsersByMonth {
     cantidad: number;
 }
 
+export interface ConversationStatusDistribution {
+    name: string;
+    value: number;
+}
+
 export interface DashboardSummary {
     totalTickets: {
         value: number;
@@ -124,6 +129,16 @@ class ReportApi {
             return response.data;
         } catch (error) {
             console.error('Error fetching message distribution:', error);
+            throw error;
+        }
+    }
+
+    async getConversationStatusDistribution(): Promise<ConversationStatusDistribution[]> {
+        try {
+            const response = await this.axiosInstance.get('/reports/conversation-status-distribution');
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching conversation status distribution:', error);
             throw error;
         }
     }

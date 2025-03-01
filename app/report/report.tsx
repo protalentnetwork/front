@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, TooltipProps } from 'recharts';
 import { Clock, Users, MessageSquare, Ticket, AlertCircle } from 'lucide-react';
-import { reportApi, StatusDistribution, TicketsByAgent, TicketsTrend, MessageVolume, MessageDistribution, ResponseTimeByAgent, LoginActivity, UserRole, NewUsersByMonth, DashboardSummary } from './services/report.api';
+import { reportApi, StatusDistribution, TicketsByAgent, TicketsTrend, MessageVolume, MessageDistribution, ResponseTimeByAgent, LoginActivity, UserRole, NewUsersByMonth, DashboardSummary, ConversationStatusDistribution } from './services/report.api';
 import { useTheme } from 'next-themes';
 
 // Interfaces para los props de componentes
@@ -40,13 +40,13 @@ interface PieChartLabelProps {
     index?: number;
     value?: number;
     fill?: string;
-    payload?: StatusDistribution | TicketsByAgent | MessageDistribution | UserRole;
+    payload?: StatusDistribution | TicketsByAgent | TicketsTrend | MessageVolume | MessageDistribution | ResponseTimeByAgent | LoginActivity | UserRole | NewUsersByMonth | ConversationStatusDistribution;
 }
 
 // Define un tipo genérico para los datos de gráficos
 type ChartData = StatusDistribution[] | TicketsByAgent[] | TicketsTrend[] | 
                 MessageVolume[] | MessageDistribution[] | ResponseTimeByAgent[] | 
-                LoginActivity[] | UserRole[] | NewUsersByMonth[];
+                LoginActivity[] | UserRole[] | NewUsersByMonth[] | ConversationStatusDistribution[];
 
 // Define una interfaz para los errores
 interface ReportErrors {
@@ -98,6 +98,7 @@ const ReportsDashboard = () => {
     const [userRolesData, setUserRolesData] = useState<UserRole[] | null>(null);
     const [newUsersData, setNewUsersData] = useState<NewUsersByMonth[] | null>(null);
     const [summaryData, setSummaryData] = useState<DashboardSummary | null>(null);
+    const [conversationStatusData, setConversationStatusData] = useState<ConversationStatusDistribution[] | null>(null);
 
     // Estados para manejo de errores y carga
     const [errors, setErrors] = useState<ReportErrors>({});
@@ -185,6 +186,11 @@ const ReportsDashboard = () => {
                         () => reportApi.getNewUsersByMonth(),
                         'newUsers',
                         setNewUsersData
+                    ),
+                    fetchDataSafely(
+                        () => reportApi.getConversationStatusDistribution(),
+                        'conversationStatusDistribution',
+                        setConversationStatusData
                     ),
                 ]);
             } catch (error) {
@@ -368,6 +374,38 @@ const ReportsDashboard = () => {
 
             {activeTab === 'chats' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <ChartCard
+                        title="Distribución de Conversaciones"
+                        isLoading={!conversationStatusData}
+                        error={errors.conversationStatusDistribution}
+                    >
+                        {renderSafeChart(
+                            conversationStatusData,
+                            'conversationStatusDistribution',
+                            (data) => (
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <PieChart>
+                                        <Pie
+                                            data={data}
+                                            cx="50%"
+                                            cy="50%"
+                                            labelLine={false}
+                                            label={({ name, percent }: PieChartLabelProps) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                            outerRadius={80}
+                                            fill="#8884d8"
+                                            dataKey="value"
+                                        >
+                                            {data.map((entry: ConversationStatusDistribution, index: number) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip content={customTooltip} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            )
+                        )}
+                    </ChartCard>
+
                     <ChartCard
                         title="Volumen de Mensajes (Hoy)"
                         isLoading={!messageVolumeData}
