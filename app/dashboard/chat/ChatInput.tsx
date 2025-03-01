@@ -50,11 +50,6 @@ export default function ChatInput({
                 throw new Error('No hay conexión con el servidor');
             }
 
-            console.log('Socket conectado:', socket.connected);
-            console.log('Socket ID:', socket.id);
-            console.log('Enviando mensaje:', messageText);
-
-            // Usar el callback proporcionado por el componente padre
             onSendMessage(messageText);
 
             setInput('');
@@ -64,7 +59,6 @@ export default function ChatInput({
         } catch (error) {
             console.error('Error al enviar mensaje:', error);
             
-            // Usamos setTimeout para evitar problemas de actualización de estado
             setTimeout(() => {
                 toast.error('Error al enviar el mensaje');
             }, 100);

@@ -3,17 +3,6 @@ import Credentials from "next-auth/providers/credentials"
 import { signInSchema } from "./lib/zod"
 import type { User } from "next-auth"
 
-// Configuración de URLs permitidas
-const productionHostname = 'backoffice-casino-front-production.up.railway.app'
-const allowedHosts = [
-  'localhost:3000',
-  'localhost',
-  productionHostname,
-  `https://${productionHostname}`,
-  process.env.NEXTAUTH_URL,
-  'backoffice-casino-front.railway.internal'
-]
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
