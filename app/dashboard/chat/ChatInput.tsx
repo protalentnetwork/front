@@ -6,22 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Send, Loader2 } from 'lucide-react';
 import { Socket } from 'socket.io-client';
 import { toast } from 'sonner';
-import { nanoid } from 'nanoid';
 
 interface ChatInputProps {
     chatId: string | null;
-    agentId: string;
     socket: Socket;
     conversationId?: string;
-    onLocalMessageSent?: (message: { id: string; userId: string; message: string; sender: string; agentId: string; timestamp: string; conversationId: string }) => void;
+    onSendMessage: (message: string) => void;
 }
 
 export default function ChatInput({ 
     chatId, 
-    agentId, 
     socket, 
     conversationId,
-    onLocalMessageSent 
+    onSendMessage 
 }: ChatInputProps) {
     const [input, setInput] = useState('');
     const [isSending, setIsSending] = useState(false);
@@ -55,36 +52,10 @@ export default function ChatInput({
 
             console.log('Socket conectado:', socket.connected);
             console.log('Socket ID:', socket.id);
-            console.log('Enviando mensaje a través de Socket:', {
-                userId: chatId,
-                message: messageText,
-                agentId,
-                conversationId
-            });
+            console.log('Enviando mensaje:', messageText);
 
-            // Create a temporary message for optimistic UI update
-            const tempMessage = {
-                id: nanoid(),
-                userId: chatId || '',
-                message: messageText,
-                sender: 'agent',
-                agentId,
-                timestamp: new Date().toISOString(),
-                conversationId
-            };
-
-            // Immediately update UI with the sent message
-            if (onLocalMessageSent) {
-                onLocalMessageSent(tempMessage);
-            }
-
-            // Send message to server
-            socket.emit('message', {
-                userId: chatId,
-                message: messageText,
-                agentId,
-                conversationId
-            });
+            // Usar el callback proporcionado por el componente padre
+            onSendMessage(messageText);
 
             setInput('');
             if (textareaRef.current) {

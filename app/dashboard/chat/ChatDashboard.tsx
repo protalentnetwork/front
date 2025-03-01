@@ -52,6 +52,7 @@ const socket = io('https://backoffice-casino-back-production.up.railway.app', {
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     timeout: 20000,
+    forceNew: true,
 });
 
 export default function ChatDashboard() {
@@ -109,6 +110,16 @@ export default function ChatDashboard() {
         // Fetch users on component mount
         fetchUsers();
 
+        // Configurar un ping periódico para mantener la conexión activa
+        const pingInterval = setInterval(() => {
+            if (socket.connected) {
+                console.log('Enviando ping al servidor...');
+                socket.emit('checkConnection', (response: { status: string; timestamp: number }) => {
+                    console.log('Respuesta de ping:', response);
+                });
+            }
+        }, 30000); // Cada 30 segundos
+
         function onConnect() {
             setIsConnected(true);
             setIsLoading(false);
@@ -152,6 +163,7 @@ export default function ChatDashboard() {
         }
 
         function onActiveChats(chats: { userId: string; agentId: string; conversationId: string }[]) {
+            console.log('Recibiendo chats activos:', chats);
             const active: ChatData[] = [];
             const pending: ChatData[] = [];
 
@@ -184,10 +196,19 @@ export default function ChatDashboard() {
         }
 
         // Add a listener for chat assignment confirmation
-        function onAgentAssigned(data: { userId: string; agentId: string; success: boolean }) {
+        function onAgentAssigned(data: { userId: string; agentId: string; success: boolean; conversationId: string }) {
+            console.log('Agente asignado:', data);
             if (data.success && data.agentId === agentId) {
                 if (assigningChat !== data.userId) {
                     socket.emit('getActiveChats');
+                }
+
+                // Si estamos viendo esta conversación, unirse a la sala
+                if (selectedChat === data.userId) {
+                    socket.emit('selectConversation', {
+                        conversationId: data.conversationId,
+                        agentId
+                    });
                 }
             }
         }
@@ -199,6 +220,7 @@ export default function ChatDashboard() {
         }
 
         function onArchivedChats(chats: { userId: string; agentId: string; conversationId: string }[]) {
+            console.log('Recibiendo chats archivados:', chats);
             if (Array.isArray(chats)) {
                 const mapped = chats.map(chat => ({
                     chat_user_id: chat.userId,
@@ -213,6 +235,7 @@ export default function ChatDashboard() {
         }
 
         function onMessageHistory(chatMessages: Message[]) {
+            console.log('Recibiendo historial de mensajes:', chatMessages);
             if (Array.isArray(chatMessages)) {
                 // Asegurar que todos los mensajes históricos tengan IDs únicos
                 const messagesWithIds = chatMessages.map(msg => ({
@@ -220,12 +243,14 @@ export default function ChatDashboard() {
                     id: msg.id || nanoid()
                 }));
                 setMessages(messagesWithIds);
+                scrollToBottom();
             } else {
                 setMessages([]);
             }
         }
 
         function onConversationMessages(data: { conversationId: string; messages: Message[] }) {
+            console.log('Recibiendo mensajes de conversación:', data);
             if (Array.isArray(data.messages)) {
                 const messagesWithIds = data.messages.map(msg => ({
                     ...msg,
@@ -245,59 +270,85 @@ export default function ChatDashboard() {
         }
 
         function onNewMessage(message: Message) {
+            console.log('Nuevo mensaje recibido:', message);
             const isForCurrentChat = selectedChat === message.userId ||
-                (message.conversationId && message.conversationId === currentConversationId);
+                    (message.conversationId && message.conversationId === currentConversationId);
 
             if (isForCurrentChat) {
-                setMessages(prev => [...prev, {
-                    ...message,
-                    id: message.id || nanoid()
-                }]);
+                console.log('Nuevo mensaje recibido para el chat actual:', message);
+                setMessages(prevMessages => {
+                    // Verificar si el mensaje ya existe para evitar duplicados
+                    const messageExists = prevMessages.some(
+                        msg => msg.id === message.id || 
+                        (msg.message === message.message && 
+                         msg.sender === message.sender && 
+                         Math.abs(new Date(msg.timestamp).getTime() - new Date(message.timestamp).getTime()) < 3000)
+                    );
+
+                    if (messageExists) {
+                        console.log('Mensaje duplicado detectado, no se añadirá:', message);
+                        return prevMessages;
+                    }
+
+                    const newMessage = {
+                        ...message,
+                        id: message.id || nanoid()
+                    };
+
+                    return [...prevMessages, newMessage];
+                });
+
+                // Actualizar la lista de chats activos
+                socket.emit('getActiveChats');
+                
+                // Notificar visualmente al agente
+                if (message.sender === 'client') {
+                    toast.info(`Nuevo mensaje de ${message.userId}`, {
+                        description: message.message.substring(0, 50) + (message.message.length > 50 ? '...' : '')
+                    });
+                }
+
                 scrollToBottom();
             } else {
-                console.log('Message not for current chat, ignoring for display');
-            }
-
-            // Actualizar las listas de chats cuando llega un mensaje nuevo
-            const isInActiveChats = activeChats.some(chat => chat.chat_user_id === message.userId);
-            const isInPendingChats = pendingChats.some(chat => chat.chat_user_id === message.userId);
-
-            if (!isInActiveChats && !isInPendingChats) {
-                // Si el chat no existe en ninguna lista, añadirlo a pendientes
-                if (!message.agentId) {
-                    // Verificar que tenemos la conversationId antes de añadir el chat
-                    if (message.conversationId) {
-                        setPendingChats(prev => [
-                            ...prev,
-                            {
-                                chat_user_id: message.userId,
-                                chat_agent_id: null,
-                                status: 'pending',
-                                conversationId: message.conversationId
-                            }
-                        ]);
-
-                        toast(`Nuevo chat pendiente de Usuario ${message.userId}`, {
-                            description: message.message,
-                        });
-                    } else {
-                        console.error('Se recibió un mensaje sin ID de conversación:', message);
-                    }
+                // Si el mensaje no es para el chat actual, solo actualizar la lista de chats
+                socket.emit('getActiveChats');
+                
+                // Notificar al agente sobre el nuevo mensaje en otro chat
+                if (message.sender === 'client') {
+                    toast.info(`Nuevo mensaje en otro chat de ${message.userId}`, {
+                        description: message.message.substring(0, 50) + (message.message.length > 50 ? '...' : '')
+                    });
                 }
             }
         }
 
-        // Socket event listeners
+        // Función para manejar cambios en el estado de conexión
+        function onConnectionStatus(data: { type: string; id: string; status: string }) {
+            console.log('Estado de conexión actualizado:', data);
+            // Actualizar la UI si es necesario
+        }
+
+        // Función para manejar pings del servidor
+        function onPing() {
+            console.log('Ping recibido del servidor');
+            // Responder con un pong para mantener la conexión activa
+            socket.emit('pong');
+        }
+
+        // Registrar los event listeners
         socket.on('connect', onConnect);
-        socket.on('disconnect', onDisconnect);
         socket.on('connect_error', onConnectError);
+        socket.on('disconnect', onDisconnect);
         socket.on('activeChats', onActiveChats);
         socket.on('archivedChats', onArchivedChats);
         socket.on('messageHistory', onMessageHistory);
         socket.on('conversationMessages', onConversationMessages);
         socket.on('newMessage', onNewMessage);
+        socket.on('message', onNewMessage); // También escuchar el evento 'message'
         socket.on('agentAssigned', onAgentAssigned);
         socket.on('assignmentError', onAssignmentError);
+        socket.on('connectionStatus', onConnectionStatus);
+        socket.on('ping', onPing);
 
         // Solicitar chats activos y archivados al conectar
         if (socket.connected) {
@@ -305,20 +356,35 @@ export default function ChatDashboard() {
             socket.emit('getArchivedChats');
         }
 
-        // Cleanup
+        // Cleanup function
         return () => {
+            clearInterval(pingInterval);
             socket.off('connect', onConnect);
-            socket.off('disconnect', onDisconnect);
             socket.off('connect_error', onConnectError);
+            socket.off('disconnect', onDisconnect);
             socket.off('activeChats', onActiveChats);
             socket.off('archivedChats', onArchivedChats);
             socket.off('messageHistory', onMessageHistory);
             socket.off('conversationMessages', onConversationMessages);
             socket.off('newMessage', onNewMessage);
+            socket.off('message', onNewMessage);
             socket.off('agentAssigned', onAgentAssigned);
             socket.off('assignmentError', onAssignmentError);
+            socket.off('connectionStatus', onConnectionStatus);
+            socket.off('ping', onPing);
         };
-    }, [selectedChat, scrollToBottom, agentId, fetchUsers]);
+    }, [selectedChat, currentConversationId, scrollToBottom, agentId, fetchUsers, user, assigningChat]);
+
+    // Efecto para volver a unirse a la sala de conversación cuando cambia currentConversationId
+    useEffect(() => {
+        if (currentConversationId && socket.connected) {
+            console.log(`Uniendo al agente a la sala de conversación ${currentConversationId}`);
+            socket.emit('selectConversation', {
+                conversationId: currentConversationId,
+                agentId
+            });
+        }
+    }, [currentConversationId, agentId]);
 
     const selectChat = useCallback((userId: string) => {
         // Clear current messages when selecting a new chat
@@ -406,9 +472,6 @@ export default function ChatDashboard() {
                 }
             });
         }
-
-        // Still join the chat room
-        socket.emit('joinChat', { userId });
     }, [activeChats, pendingChats, archivedChats, agentId]);
 
     const assignToMe = useCallback((userId: string, conversationId: string) => {
@@ -616,6 +679,44 @@ export default function ChatDashboard() {
         ));
     };
 
+    const sendMessage = useCallback((message: string) => {
+        if (!selectedChat || !currentConversationId || !message.trim()) {
+            return;
+        }
+
+        console.log(`Enviando mensaje a ${selectedChat} en conversación ${currentConversationId}`);
+
+        // Crear un mensaje temporal para UI optimista
+        const tempMessage: Message = {
+            id: nanoid(),
+            userId: selectedChat,
+            message: message.trim(),
+            sender: 'agent',
+            agentId,
+            timestamp: new Date().toISOString(),
+            conversationId: currentConversationId
+        };
+
+        // Actualizar UI inmediatamente
+        setMessages(prev => [...prev, tempMessage]);
+
+        // Enviar mensaje al servidor
+        socket.emit('message', {
+            userId: selectedChat,
+            message: message.trim(),
+            agentId,
+            conversationId: currentConversationId
+        }, (response: { success: boolean; message?: string }) => {
+            console.log('Respuesta del servidor:', response);
+            if (!response.success) {
+                toast.error(`Error al enviar mensaje: ${response.message || 'Error desconocido'}`);
+            }
+        });
+
+        // Scroll al final
+        scrollToBottom();
+    }, [selectedChat, currentConversationId, agentId, scrollToBottom]);
+
     if (isLoading) {
         return (
             <div className="flex h-[calc(100vh-100px)] items-center justify-center">
@@ -762,25 +863,22 @@ export default function ChatDashboard() {
                                 <div ref={messagesEndRef} />
                             </div>
                         </ScrollArea>
-                        {/* Solo mostrar el input de mensaje si el chat está activo */}
-                        {activeChats.some(chat => chat.chat_user_id === selectedChat) ? (
+                        {/* Chat Input */}
+                        {selectedChat && (
+                          activeChats.some(chat => chat.chat_user_id === selectedChat) ? (
                             <ChatInput
-                                chatId={selectedChat}
-                                agentId={agentId}
-                                socket={socket}
-                                conversationId={currentConversationId || undefined}
-                                onLocalMessageSent={(message) => {
-                                    // Add the message to the local state immediately
-                                    setMessages(prev => [...prev, message]);
-                                    scrollToBottom();
-                                }}
+                              chatId={selectedChat}
+                              socket={socket}
+                              conversationId={currentConversationId || undefined}
+                              onSendMessage={sendMessage}
                             />
-                        ) : (
+                          ) : (
                             <div className="p-4 border-t bg-muted/50 text-center text-sm">
-                                {archivedChats.some(chat => chat.chat_user_id === selectedChat)
-                                    ? 'Este chat está archivado'
-                                    : 'Asígnate este chat para poder enviar mensajes'}
+                              {archivedChats.some(chat => chat.chat_user_id === selectedChat)
+                                ? 'Este chat está archivado'
+                                : 'Asígnate este chat para poder enviar mensajes'}
                             </div>
+                          )
                         )}
                     </>
                 ) : (
