@@ -1,6 +1,18 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { RoleGuard } from '@/components/role-guard';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface Transaction {
   id: string | number;
@@ -40,58 +52,85 @@ export default function Page() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div>Cargando transacciones...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) return <div className="flex justify-center items-center p-8">Cargando transacciones...</div>;
+  if (error) return <div className="flex justify-center items-center p-8 text-red-500">Error: {error}</div>;
+
+  const getStatusBadge = (status?: string) => {
+    if (!status || status === 'Pending') {
+      return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pendiente</Badge>;
+    }
+    if (status === 'Aceptado' || status === 'approved') {
+      return <Badge variant="outline" className="bg-green-100 text-green-800">Aceptado</Badge>;
+    }
+    return <Badge variant="outline">{status}</Badge>;
+  };
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Monitoreo de Transferencias</h1>
-      <table className="min-w-full bg-white border border-gray-300">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="py-2 px-4 border-b">ID</th>
-            <th className="py-2 px-4 border-b">Tipo</th>
-            <th className="py-2 px-4 border-b">Monto</th>
-            <th className="py-2 px-4 border-b">Descripción</th>
-            <th className="py-2 px-4 border-b">Estado</th>
-            <th className="py-2 px-4 border-b">Fecha de Creación</th>
-            <th className="py-2 px-4 border-b">Método/Cuenta</th>
-            <th className="py-2 px-4 border-b">Email/Cuenta Destino</th>
-            <th className="py-2 px-4 border-b">Acción</th>
-          </tr>
-        </thead>
-        <tbody>
-          {transactions.map((transaction) => (
-            <tr key={transaction.id} className="hover:bg-gray-50">
-              <td className="py-2 px-4 border-b">{transaction.id}</td>
-              <td className="py-2 px-4 border-b">{transaction.type === 'deposit' ? 'Depósito' : 'Retiro'}</td>
-              <td className="py-2 px-4 border-b">${transaction.amount.toFixed(2)}</td>
-              <td className="py-2 px-4 border-b">{transaction.description || 'Sin descripción'}</td>
-              <td className="py-2 px-4 border-b">{transaction.status || 'Pending'}</td>
-              <td className="py-2 px-4 border-b">
-                {transaction.date_created ? new Date(transaction.date_created).toLocaleString() : 'No disponible'}
-              </td>
-              <td className="py-2 px-4 border-b">{transaction.payment_method_id || transaction.cbu || 'No disponible'}</td>
-              <td className="py-2 px-4 border-b">{transaction.payer_email || transaction.wallet_address || 'No disponible'}</td>
-              <td className="py-2 px-4 border-b">
-                {transaction.status === 'Aceptado' ? (
-                  <span className="bg-green-500 text-white px-4 py-2 rounded">Aceptado</span>
-                ) : (
-                  <button
-                    onClick={() => handleAccept(transaction.id)}
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                    disabled={transaction.status === 'Aceptado'}
-                  >
-                    Pending
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {transactions.length === 0 && <p className="mt-4">No hay transacciones disponibles</p>}
-    </div>
+    <RoleGuard allowedRoles={['admin', 'encargado']}>
+      <div className="container mx-auto p-4">
+        <h1 className="text-2xl font-bold mb-4">Monitoreo de Transferencias</h1>
+        
+        {transactions.length === 0 ? (
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground">No hay transacciones disponibles</p>
+          </Card>
+        ) : (
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Monto</TableHead>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Fecha de Creación</TableHead>
+                  <TableHead>Método/Cuenta</TableHead>
+                  <TableHead>Email/Cuenta Destino</TableHead>
+                  <TableHead>Acción</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.map((transaction) => (
+                  <TableRow key={transaction.id} className="hover:bg-muted/50">
+                    <TableCell className="font-medium">{transaction.id}</TableCell>
+                    <TableCell>{transaction.type === 'deposit' ? 'Depósito' : 'Retiro'}</TableCell>
+                    <TableCell>${transaction.amount.toFixed(2)}</TableCell>
+                    <TableCell>{transaction.description || 'Sin descripción'}</TableCell>
+                    <TableCell>{getStatusBadge(transaction.status)}</TableCell>
+                    <TableCell>
+                      {transaction.date_created 
+                        ? new Date(transaction.date_created).toLocaleString() 
+                        : 'No disponible'}
+                    </TableCell>
+                    <TableCell>
+                      {transaction.payment_method_id || transaction.cbu || 'No disponible'}
+                    </TableCell>
+                    <TableCell>
+                      {transaction.payer_email || transaction.wallet_address || 'No disponible'}
+                    </TableCell>
+                    <TableCell>
+                      {transaction.status === 'Aceptado' ? (
+                        <Badge className="bg-green-100 text-green-800">Aceptado</Badge>
+                      ) : (
+                        <Button 
+                          onClick={() => handleAccept(transaction.id)}
+                          variant="default"
+                          size="sm"
+                          disabled={transaction.status === 'Aceptado'}
+                        >
+                          Aceptar
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        )}
+      </div>
+    </RoleGuard>
   );
 
   function handleAccept(id: string | number) {

@@ -3,7 +3,9 @@
 import * as React from "react"
 import { useMemo } from "react"
 import {
+  CircleCheckBig,
   CircleHelp,
+  Hourglass,
   LampDesk,
   Landmark,
   MessagesSquare,
@@ -63,12 +65,12 @@ const projectsItems = [
   {
     name: "Monitoreo pendientes",
     url: "/dashboard/web-monitoring",
-    icon: CircleHelp,
+    icon: Hourglass,
   },
   {
     name: "Monitoreo de completados",
     url: "/dashboard/transfer-monitoring",
-    icon: CircleHelp,
+    icon: CircleCheckBig,
   },
 ];
 
@@ -92,7 +94,7 @@ const othersItems = [
 
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, isOperator } = useAuth()
+  const { user, isOperator, isManager } = useAuth()
 
   const userData = useMemo(() => ({
     name: user?.name,
@@ -103,20 +105,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if (isOperator) {
       return {
         navMain: [],
-        reports: [],
         tickets: ticketsItems,
         projects: [],
         others: []
       };
     }
 
+    if (isManager) {
+      return {
+        navMain: [],
+        tickets: [],
+        projects: projectsItems,
+        others: []
+      };
+    }
+
+    // Para admin y otros roles
     return {
       navMain: navMainItems,
       tickets: ticketsItems,
       projects: projectsItems,
       others: othersItems
     };
-  }, [isOperator]);
+  }, [isOperator, isManager]);
 
   return (
     <Sidebar variant="inset" {...props}>

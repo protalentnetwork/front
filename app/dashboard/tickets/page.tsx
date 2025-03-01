@@ -1,4 +1,5 @@
 import { TicketsClient } from "@/components/tickets/tickets-client"
+import { RoleGuard } from "@/components/role-guard"
 
 const fetchTickets = async () => {
   const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL
@@ -14,12 +15,14 @@ export default async function TicketsPage() {
   const tickets = await fetchTickets()
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Tickets</h1>
-      </div>
+    <RoleGuard allowedRoles={['admin', 'operador']}>
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Tickets</h1>
+        </div>
 
-      <TicketsClient initialTickets={tickets} />
-    </div>
+        <TicketsClient initialTickets={tickets} />
+      </div>
+    </RoleGuard>
   )
 }
