@@ -26,6 +26,11 @@ interface Transaction {
   payer_email?: string;
 }
 
+interface TransactionUpdateData {
+  transactions: Transaction[];
+  newTransaction?: Transaction;
+}
+
 export default function Page() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,9 +50,9 @@ export default function Page() {
         console.log('Datos recibidos del backend:', data);
         setTransactions(data);
         setError(null);
-      } catch (err: any) {
+      } catch (err) {
         console.error('Error en el fetch:', err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : 'Error desconocido');
       } finally {
         setLoading(false);
       }
@@ -68,7 +73,7 @@ export default function Page() {
     });
     
     // Escuchar evento de actualización de transacciones
-    socket.on('transaction-updated', (data) => {
+    socket.on('transaction-updated', (data: TransactionUpdateData) => {
       console.log('Actualización de transacciones recibida:', data);
       
       // Actualizar el estado con las nuevas transacciones
