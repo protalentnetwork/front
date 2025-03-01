@@ -44,6 +44,8 @@ const formSchema = z.object({
   status: z.enum(['active', 'inactive']),
   mp_client_id: z.string().optional(),
   mp_client_secret: z.string().optional(),
+  mp_public_key: z.string().optional(),
+  mp_access_token: z.string().optional(),
 })
 
 interface CreateTransferAccountModalProps {
@@ -70,6 +72,8 @@ export function CreateTransferAccountModal({
       status: 'active',
       mp_client_id: '',
       mp_client_secret: '',
+      mp_public_key: '',
+      mp_access_token: '',
     },
   })
 
@@ -103,7 +107,7 @@ export function CreateTransferAccountModal({
       toast.success('Cuenta de transferencia creada correctamente')
       setTriggerReset(true);
       await onAccountCreated()
-      
+
       // Cerrar el modal después de un pequeño retraso para evitar problemas de interacción
       setTimeout(() => {
         setOpen(false)
@@ -118,7 +122,7 @@ export function CreateTransferAccountModal({
 
   const handleOpenChange = (newOpen: boolean) => {
     if (isSubmitting) return; // Prevenir cierre durante el envío
-    
+
     if (!newOpen && open) {
       // Si estamos cerrando el modal, primero actualizamos el estado interno
       // y luego, después de un pequeño retraso, actualizamos el estado real
@@ -175,7 +179,7 @@ export function CreateTransferAccountModal({
                 )}
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -204,7 +208,7 @@ export function CreateTransferAccountModal({
                 )}
               />
             </div>
-            
+
             <FormField
               control={form.control}
               name="wallet"
@@ -230,7 +234,7 @@ export function CreateTransferAccountModal({
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -259,38 +263,68 @@ export function CreateTransferAccountModal({
                 )}
               />
             </div>
-            
+
             {watchWallet === 'mercadopago' && (
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="mp_client_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>MP Client ID</FormLabel>
-                      <FormControl>
-                        <Input {...field} disabled={isSubmitting} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="mp_client_secret"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>MP Client Secret</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="password" disabled={isSubmitting} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="mp_client_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>MP Client ID</FormLabel>
+                        <FormControl>
+                          <Input {...field} disabled={isSubmitting} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="mp_client_secret"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>MP Client Secret</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="password" disabled={isSubmitting} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="mp_public_key"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Public Key</FormLabel>
+                        <FormControl>
+                          <Input {...field} disabled={isSubmitting} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="mp_access_token"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Access Token</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="password" disabled={isSubmitting} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </>
             )}
-            
+
             <FormField
               control={form.control}
               name="status"
@@ -302,7 +336,7 @@ export function CreateTransferAccountModal({
                   <FormControl>
                     <Switch
                       checked={field.value === 'active'}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         field.onChange(checked ? 'active' : 'inactive')
                       }
                       disabled={isSubmitting}
@@ -311,11 +345,11 @@ export function CreateTransferAccountModal({
                 </FormItem>
               )}
             />
-            
+
             <div className="flex justify-end gap-3 pt-2">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => handleOpenChange(false)}
                 disabled={isSubmitting}
               >
@@ -337,4 +371,4 @@ export function CreateTransferAccountModal({
       </DialogContent>
     </Dialog>
   )
-} 
+}
