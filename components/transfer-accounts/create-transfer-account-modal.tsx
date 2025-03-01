@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
   DialogDescription,
 } from '@/components/ui/dialog'
 import {
@@ -28,97 +29,120 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { TransferAccount } from '@/types/transfer-account'
-import { useEffect, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Loader2, PlusCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
 const formSchema = z.object({
-  userName: z.string().min(1, 'El nombre es requerido'),
+  name: z.string().min(1, 'El nombre es requerido'),
   office: z.string().min(1, 'La oficina es requerida'),
   cbu: z.string().min(1, 'El CBU es requerido'),
   alias: z.string().min(1, 'El alias es requerido'),
   wallet: z.enum(['mercadopago', 'paypal']),
   operator: z.string().min(1, 'El operador es requerido'),
   agent: z.string().min(1, 'El agente es requerido'),
-  isActive: z.boolean(),
+  status: z.enum(['active', 'inactive']),
   mp_client_id: z.string().optional(),
   mp_client_secret: z.string().optional(),
 })
 
-interface EditTransferAccountModalProps {
-  account: TransferAccount | null
-  onClose: () => void
-  onConfirm: (account: TransferAccount) => Promise<void>
+interface CreateTransferAccountModalProps {
+  onAccountCreated: () => Promise<void>
 }
 
-export function EditTransferAccountModal({
-  account,
-  onClose,
-  onConfirm,
-}: EditTransferAccountModalProps) {
+export function CreateTransferAccountModal({
+  onAccountCreated,
+}: CreateTransferAccountModalProps) {
+  const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+  const [triggerReset, setTriggerReset] = useState(false)
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      userName: account?.userName || '',
-      office: account?.office || '',
-      cbu: account?.cbu || '',
-      alias: account?.alias || '',
-      wallet: account?.wallet || 'mercadopago',
-      operator: account?.operator || '',
-      agent: account?.agent || '',
-      isActive: account?.isActive ?? true,
-      mp_client_id: account?.mp_client_id || '',
-      mp_client_secret: account?.mp_client_secret || '',
+      name: '',
+      office: '',
+      cbu: '',
+      alias: '',
+      wallet: 'mercadopago',
+      operator: '',
+      agent: '',
+      status: 'active',
+      mp_client_id: '',
+      mp_client_secret: '',
     },
   })
 
+  // Resetear el formulario cuando se cierra el modal o cuando se activa el trigger
   useEffect(() => {
-    if (account) {
-      form.reset({
-        userName: account.userName,
-        office: account.office,
-        cbu: account.cbu,
-        alias: account.alias,
-        wallet: account.wallet,
-        operator: account.operator,
-        agent: account.agent,
-        isActive: account.isActive,
-        mp_client_id: account.mp_client_id || '',
-        mp_client_secret: account.mp_client_secret || '',
-      })
+    if (!open || triggerReset) {
+      form.reset();
+      setTriggerReset(false);
     }
-  }, [account, form])
+  }, [open, triggerReset, form]);
 
   const watchWallet = form.watch('wallet')
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!account || isSubmitting) return
-
     setIsSubmitting(true)
+
     try {
-      await onConfirm({
-        ...account,
-        ...values,
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/accounts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
       })
-      onClose()
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }))
+        throw new Error(errorData.message || response.statusText)
+      }
+
+      toast.success('Cuenta de transferencia creada correctamente')
+      setTriggerReset(true);
+      await onAccountCreated()
+      
+      // Cerrar el modal después de un pequeño retraso para evitar problemas de interacción
+      setTimeout(() => {
+        setOpen(false)
+      }, 100)
     } catch (error) {
-      console.error('Error al guardar la cuenta:', error)
-      toast.error(`Error al guardar la cuenta: ${error instanceof Error ? error.message : 'Intenta nuevamente'}`)
+      console.error('Error al crear la cuenta:', error)
+      toast.error(`Error al crear la cuenta: ${error instanceof Error ? error.message : 'Intenta nuevamente'}`)
     } finally {
       setIsSubmitting(false)
     }
   }
 
+  const handleOpenChange = (newOpen: boolean) => {
+    if (isSubmitting) return; // Prevenir cierre durante el envío
+    
+    if (!newOpen && open) {
+      // Si estamos cerrando el modal, primero actualizamos el estado interno
+      // y luego, después de un pequeño retraso, actualizamos el estado real
+      setTimeout(() => {
+        setOpen(newOpen);
+      }, 0);
+    } else {
+      setOpen(newOpen);
+    }
+  };
+
   return (
-    <Dialog open={!!account} onOpenChange={(open) => !open && !isSubmitting && onClose()}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <Button className="gap-2">
+          <PlusCircle className="h-4 w-4" />
+          <span>Nueva cuenta</span>
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Editar cuenta de transferencia</DialogTitle>
+          <DialogTitle>Crear cuenta de transferencia</DialogTitle>
           <DialogDescription>
-            Modifica los datos de la cuenta de transferencia.
+            Completa el formulario para crear una nueva cuenta de transferencia.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -126,7 +150,7 @@ export function EditTransferAccountModal({
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="userName"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nombre</FormLabel>
@@ -190,7 +214,6 @@ export function EditTransferAccountModal({
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
-                    value={field.value}
                     disabled={isSubmitting}
                   >
                     <FormControl>
@@ -270,7 +293,7 @@ export function EditTransferAccountModal({
             
             <FormField
               control={form.control}
-              name="isActive"
+              name="status"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
@@ -278,8 +301,10 @@ export function EditTransferAccountModal({
                   </div>
                   <FormControl>
                     <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
+                      checked={field.value === 'active'}
+                      onCheckedChange={(checked) => 
+                        field.onChange(checked ? 'active' : 'inactive')
+                      }
                       disabled={isSubmitting}
                     />
                   </FormControl>
@@ -291,22 +316,19 @@ export function EditTransferAccountModal({
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={(open) => !open && !isSubmitting && onClose()}
+                onClick={() => handleOpenChange(false)}
                 disabled={isSubmitting}
               >
                 Cancelar
               </Button>
-              <Button 
-                type="submit"
-                disabled={isSubmitting}
-              >
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Guardando...
+                    Creando...
                   </>
                 ) : (
-                  'Guardar'
+                  "Crear cuenta"
                 )}
               </Button>
             </div>

@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import {
   Table,
   TableBody,
@@ -9,19 +8,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
 import { TransferAccount } from '@/types/transfer-account'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
-import { EditTransferAccountModal } from '@/components/transfer-accounts/edit-transfer-account-modal'
-import { DeleteTransferAccountModal } from '@/components/transfer-accounts/delete-transfer-account-modal'
-
+import { Button } from '@/components/ui/button'
+import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useState } from 'react'
 
 interface TransferAccountsTableProps {
   accounts: TransferAccount[]
-  onEdit: (account: TransferAccount) => Promise<void>
-  onDelete: (id: string) => Promise<void>
+  onEdit: (account: TransferAccount) => void
+  onDelete: (account: TransferAccount) => void
 }
 
 export function TransferAccountsTable({
@@ -29,97 +32,83 @@ export function TransferAccountsTable({
   onEdit,
   onDelete,
 }: TransferAccountsTableProps) {
-  const [editingAccount, setEditingAccount] = useState<TransferAccount | null>(null)
-  const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+
+  const handleAction = async (action: 'edit' | 'delete', account: TransferAccount) => {
+    setOpenMenuId(null)
+    if (action === 'edit') {
+      onEdit(account)
+    } else {
+      onDelete(account)
+    }
+  }
 
   return (
-    <div className="rounded-md border">
+    <div className="border rounded-md">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>Nombre/Oficina</TableHead>
-            <TableHead>CBU/Alias</TableHead>
+            <TableHead>Nombre</TableHead>
+            <TableHead>Oficina</TableHead>
+            <TableHead>CBU</TableHead>
+            <TableHead>Alias</TableHead>
+            <TableHead>Billetera</TableHead>
             <TableHead>Operador</TableHead>
             <TableHead>Agente</TableHead>
-            <TableHead>Creación</TableHead>
             <TableHead>Estado</TableHead>
-            <TableHead>Acciones</TableHead>
+            <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {accounts.map((account) => (
             <TableRow key={account.id}>
-              <TableCell className="font-medium">{account.id}</TableCell>
+              <TableCell>{account.userName}</TableCell>
+              <TableCell>{account.office}</TableCell>
+              <TableCell>{account.cbu}</TableCell>
+              <TableCell>{account.alias}</TableCell>
               <TableCell>
-                <div className="flex flex-col">
-                  <span className="font-medium">{account.userName}</span>
-                  <span className="text-sm text-muted-foreground">{account.office}</span>
-                </div>
+                <Badge variant="outline">
+                  {account.wallet === 'mercadopago' ? 'Mercado Pago' : 'PayPal'}
+                </Badge>
               </TableCell>
-              <TableCell>
-                <div className="flex flex-col">
-                  <span className="font-medium">{account.cbu}</span>
-                  <span className="text-sm">{account.alias}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {account.wallet === 'mercadopago' ? 'Mercado Pago' : 'PayPal'}
-                  </span>
-                </div>
-              </TableCell>
-
               <TableCell>{account.operator}</TableCell>
               <TableCell>{account.agent}</TableCell>
-              <TableCell>
-                {format(account.createdAt, 'dd/MM/yyyy HH:mm', { locale: es })}
-              </TableCell>
               <TableCell>
                 <Badge variant={account.isActive ? 'default' : 'secondary'}>
                   {account.isActive ? 'Activa' : 'Inactiva'}
                 </Badge>
               </TableCell>
-
               <TableCell>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEditingAccount(account)}
-                  >
-                    Editar
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => setDeletingAccountId(account.id)}
-                  >
-                    Eliminar
-                  </Button>
-                </div>
+                <DropdownMenu 
+                  open={openMenuId === account.id}
+                  onOpenChange={(open) => setOpenMenuId(open ? account.id : null)}
+                >
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span className="sr-only">Abrir menú</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleAction('edit', account)}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      <span>Editar</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => handleAction('delete', account)}
+                      className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      <span>Eliminar</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-
-      <EditTransferAccountModal
-        account={editingAccount}
-        onClose={() => setEditingAccount(null)}
-        onConfirm={async (updatedAccount) => {
-          await onEdit(updatedAccount)
-          setEditingAccount(null)
-        }}
-      />
-
-      <DeleteTransferAccountModal
-        isOpen={!!deletingAccountId}
-        onClose={() => setDeletingAccountId(null)}
-        onConfirm={async () => {
-          if (deletingAccountId) {
-            await onDelete(deletingAccountId)
-            setDeletingAccountId(null)
-          }
-        }}
-      />
     </div>
   )
 } 

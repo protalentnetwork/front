@@ -9,4 +9,8 @@ export interface TransferAccount {
   agent: string;
   createdAt: Date;
   isActive: boolean;
+  mp_client_id?: string;
+  mp_client_secret?: string;
+  mp_access_token?: string;
+  mp_public_key?: string;
 } 
