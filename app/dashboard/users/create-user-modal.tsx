@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select"
 import { toast } from "sonner"
 import { PlusCircle } from "lucide-react"
+import { useOffices } from "@/components/hooks/use-offices"
 
 interface CreateUserModalProps {
     onUserCreated: () => Promise<void>
@@ -38,6 +39,9 @@ export function CreateUserModal({ onUserCreated, userType }: CreateUserModalProp
         office: "",
         status: "active",
     })
+    
+    // Utilizamos el hook para obtener las oficinas
+    const { activeOffices, isLoading: isLoadingOffices, error: officesError } = useOffices()
 
     const handleChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }))
@@ -46,7 +50,7 @@ export function CreateUserModal({ onUserCreated, userType }: CreateUserModalProp
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (!formData.username || !formData.email || !formData.role) {
+        if (!formData.username || !formData.email || !formData.role || !formData.office) {
             toast.error("Por favor completa todos los campos requeridos")
             return
         }
@@ -56,12 +60,18 @@ export function CreateUserModal({ onUserCreated, userType }: CreateUserModalProp
         try {
             // Usar el endpoint correspondiente según el tipo de usuario
             const endpoint = userType === 'internal' ? 'users' : 'external-users'
+            
+            // Enviamos los datos sin conversión a número
+            const dataToSubmit = {
+                ...formData
+            }
+            
             const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/${endpoint}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(dataToSubmit),
             })
 
             if (response.ok) {
@@ -141,11 +151,19 @@ export function CreateUserModal({ onUserCreated, userType }: CreateUserModalProp
                                     <SelectValue placeholder="Seleccionar rol" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="admin">Administrador</SelectItem>
-                                    <SelectItem value="user">Usuario</SelectItem>
-                                    <SelectItem value="viewer">Visualizador</SelectItem>
-                                    {userType === 'external' && (
-                                        <SelectItem value="client">Cliente</SelectItem>
+                                    {userType === 'internal' ? (
+                                        <>
+                                            <SelectItem value="admin">Administrador</SelectItem>
+                                            <SelectItem value="encargado">Encargado</SelectItem>
+                                            <SelectItem value="operador">Operador</SelectItem>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <SelectItem value="admin">Administrador</SelectItem>
+                                            <SelectItem value="user">Usuario</SelectItem>
+                                            <SelectItem value="viewer">Visualizador</SelectItem>
+                                            <SelectItem value="client">Cliente</SelectItem>
+                                        </>
                                     )}
                                 </SelectContent>
                             </Select>
@@ -157,16 +175,25 @@ export function CreateUserModal({ onUserCreated, userType }: CreateUserModalProp
                             <Select
                                 value={formData.office}
                                 onValueChange={(value) => handleChange("office", value)}
+                                disabled={isLoadingOffices}
                             >
                                 <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Seleccionar oficina" />
+                                    <SelectValue placeholder={isLoadingOffices ? "Cargando oficinas..." : "Seleccionar oficina"} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="central">Oficina Central</SelectItem>
-                                    <SelectItem value="north">Zona Norte</SelectItem>
-                                    <SelectItem value="south">Zona Sur</SelectItem>
-                                    <SelectItem value="east">Zona Este</SelectItem>
-                                    <SelectItem value="west">Zona Oeste</SelectItem>
+                                    {officesError ? (
+                                        <SelectItem value="error" disabled>{officesError}</SelectItem>
+                                    ) : isLoadingOffices ? (
+                                        <SelectItem value="loading" disabled>Cargando oficinas...</SelectItem>
+                                    ) : activeOffices.length > 0 ? (
+                                        activeOffices.map(office => (
+                                            <SelectItem key={office.value} value={office.value}>
+                                                {office.label}
+                                            </SelectItem>
+                                        ))
+                                    ) : (
+                                        <SelectItem value="no-offices" disabled>No hay oficinas disponibles</SelectItem>
+                                    )}
                                     {userType === 'external' && (
                                         <SelectItem value="remote">Remoto</SelectItem>
                                     )}
@@ -193,7 +220,7 @@ export function CreateUserModal({ onUserCreated, userType }: CreateUserModalProp
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit" disabled={isLoading}>
+                        <Button type="submit" disabled={isLoading || isLoadingOffices}>
                             {isLoading ? "Creando..." : "Crear usuario"}
                         </Button>
                     </DialogFooter>

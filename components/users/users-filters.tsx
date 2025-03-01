@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select"
 import { useMemo } from "react"
 import { User } from "@/types/user"
+import { useOffices } from "@/components/hooks/use-offices"
 
 interface UsersFiltersProps {
   onFilterChange: (field: string, value: string) => void
@@ -17,11 +18,14 @@ interface UsersFiltersProps {
 }
 
 export function UsersFilters({ onFilterChange, users }: UsersFiltersProps) {
+  // Usamos el hook para obtener las oficinas
+  const { getOfficeName } = useOffices()
+
   // Get unique normalized values for each filter
   const filterOptions = useMemo(() => {
     const getUniqueValues = (field: keyof User) => {
       let values = new Set<string>()
-      if(users.length === 0){
+      if(users.length > 0){
         values = new Set(users.map(user => user[field]?.toString().toLowerCase() ?? ''))
       }
       return Array.from(values).sort()
@@ -37,6 +41,12 @@ export function UsersFilters({ onFilterChange, users }: UsersFiltersProps) {
   // Helper to capitalize first letter
   const capitalize = (str: string) => {
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+  }
+  
+  // Get office display name based on ID
+  const getOfficeDisplayName = (officeId: string) => {
+    if (officeId === "remote") return "Remoto";
+    return getOfficeName(officeId);
   }
 
   return (
@@ -80,7 +90,7 @@ export function UsersFilters({ onFilterChange, users }: UsersFiltersProps) {
           <SelectItem value="all">Todas las oficinas</SelectItem>
           {filterOptions.offices.map(office => (
             <SelectItem key={office} value={office}>
-              {capitalize(office)}
+              {getOfficeDisplayName(office)}
             </SelectItem>
           ))}
         </SelectContent>

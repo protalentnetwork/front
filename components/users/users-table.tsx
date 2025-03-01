@@ -24,15 +24,11 @@ import { SessionsModal } from "./sessions-modal"
 import { ChangePasswordModal } from "./change-password-modal"
 import { DeleteUserModal } from "./delete-user-modal"
 import { toast } from "sonner"
+import { useOffices } from "@/components/hooks/use-offices"
 
 enum UserStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
-}
-
-enum WithdrawalStatus {
-  ENABLED = 'enabled',
-  DISABLED = 'disabled'
 }
 
 interface UsersTableProps {
@@ -62,7 +58,24 @@ function getStatusDisplay(status: string) {
   }
 }
 
-export function UsersTable({ users, onRefreshUsers, userType = 'internal' }: UsersTableProps) {
+// Función para formatear los roles
+function formatRole(role: string): string {
+  if (!role) return '';
+  
+  const roleMap: Record<string, string> = {
+    'admin': 'Administrador',
+    'administrador': 'Administrador',
+    'user': 'Usuario',
+    'viewer': 'Visualizador',
+    'client': 'Cliente',
+    'encargado': 'Encargado',
+    'operador': 'Operador'
+  };
+  
+  return roleMap[role.toLowerCase()] || role.charAt(0).toUpperCase() + role.slice(1);
+}
+
+export function UsersTable({ users, onUpdateUser, onRefreshUsers, userType = 'internal' }: UsersTableProps) {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isSessionsModalOpen, setIsSessionsModalOpen] = useState(false)
@@ -71,6 +84,9 @@ export function UsersTable({ users, onRefreshUsers, userType = 'internal' }: Use
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [updatedUsers, setUpdatedUsers] = useState<User[]>([])
+  
+  // Usamos el hook de oficinas para obtener la función de mapeo de ID a nombre
+  const { getOfficeName } = useOffices()
 
   useEffect(() => {
     if (users && users.length > 0) {
@@ -109,11 +125,15 @@ export function UsersTable({ users, onRefreshUsers, userType = 'internal' }: Use
     try {
       const userData: Partial<User> = {
         status: updatedUser.isActive ? UserStatus.ACTIVE : UserStatus.INACTIVE,
-        withdrawal: updatedUser.receivesWithdrawals ? WithdrawalStatus.ENABLED : WithdrawalStatus.DISABLED,
+        receivesWithdrawals: updatedUser.receivesWithdrawals,
         role: updatedUser.role,
         office: updatedUser.office
       }
 
+      // Primero enviamos los datos al servidor
+      await onUpdateUser(selectedUser.id, userData)
+      
+      // Luego actualizamos la UI
       setUpdatedUsers(prevUsers =>
         prevUsers.map(user =>
           user.id === selectedUser.id
@@ -129,6 +149,12 @@ export function UsersTable({ users, onRefreshUsers, userType = 'internal' }: Use
             : user
         )
       )
+      
+      // Si tenemos una función para refrescar los usuarios, la llamamos
+      if (onRefreshUsers) {
+        await onRefreshUsers()
+      }
+
       setIsEditModalOpen(false)
 
       setTimeout(() => {
@@ -259,8 +285,8 @@ export function UsersTable({ users, onRefreshUsers, userType = 'internal' }: Use
                       </p>
                     </div>
                   </TableCell>
-                  <TableCell>{user.role}</TableCell>
-                  <TableCell>{user.office}</TableCell>
+                  <TableCell>{formatRole(user.role)}</TableCell>
+                  <TableCell>{getOfficeName(user.office)}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs ${getStatusDisplay(user.status).className
                       }`}>

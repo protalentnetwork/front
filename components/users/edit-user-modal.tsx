@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Loader2 } from "lucide-react"
+import { useOffices } from "@/components/hooks/use-offices"
 
 // Definimos los enums según el backend
 enum UserStatus {
@@ -31,15 +32,9 @@ enum UserStatus {
 
 // Roles disponibles en el sistema
 const AVAILABLE_ROLES = [
-  { value: "admin", label: "Admin" },
-  { value: "operador", label: "Operador" },
-  { value: "encargado", label: "Encargado" }
-]
-
-// Oficinas disponibles en el sistema
-const AVAILABLE_OFFICES = [
-  { value: "central", label: "Central" },
-  { value: "sucursal a", label: "Sucursal A" }
+  { value: "admin", label: "Administrador" },
+  { value: "encargado", label: "Encargado" },
+  { value: "operador", label: "Operador" }
 ]
 
 interface EditUserModalProps {
@@ -63,9 +58,12 @@ export function EditUserModal({ user, isOpen, onClose, onSave, isLoading = false
     isActive: user?.status === UserStatus.ACTIVE,
     receivesWithdrawals: user?.receivesWithdrawals || false,
     role: user?.role || "",
-    office: user?.office || "",
+    office: user?.office ? user.office.toString() : "",
   }))
   const [isSaving, setIsSaving] = useState(false)
+  
+  // Utilizamos el hook para obtener las oficinas
+  const { activeOffices, isLoading: isLoadingOffices } = useOffices()
 
   // Update form data when user changes
   useEffect(() => {
@@ -74,7 +72,7 @@ export function EditUserModal({ user, isOpen, onClose, onSave, isLoading = false
         isActive: user.status === UserStatus.ACTIVE,
         receivesWithdrawals: user.receivesWithdrawals,
         role: user.role,
-        office: user.office,
+        office: user.office ? user.office.toString() : "",
       })
       setIsSaving(false)
     }
@@ -89,7 +87,20 @@ export function EditUserModal({ user, isOpen, onClose, onSave, isLoading = false
     e.preventDefault()
     setIsSaving(true)
     try {
-      await onSave(formData)
+      // Creamos un objeto con las propiedades que acepte onSave
+      const dataToSubmit: Partial<User> & { isActive?: boolean } = {
+        isActive: formData.isActive,
+        receivesWithdrawals: formData.receivesWithdrawals,
+        role: formData.role
+      };
+      
+      // Añadimos la oficina con la conversión apropiada
+      if (formData.office) {
+        // Siempre enviamos office como string, como lo espera el backend
+        dataToSubmit.office = formData.office;
+      }
+      
+      await onSave(dataToSubmit)
       // No cerramos el modal aquí, dejamos que el componente padre lo haga después de actualizar
     } catch (error) {
       console.error("Error al guardar usuario:", error)
@@ -186,17 +197,23 @@ export function EditUserModal({ user, isOpen, onClose, onSave, isLoading = false
               <Select
                 value={formData.office}
                 onValueChange={(value) => setFormData({ ...formData, office: value })}
-                disabled={isSaving}
+                disabled={isSaving || isLoadingOffices}
               >
                 <SelectTrigger className="col-span-3">
-                  <SelectValue />
+                  <SelectValue placeholder={isLoadingOffices ? "Cargando oficinas..." : "Seleccionar oficina"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {AVAILABLE_OFFICES.map(office => (
-                    <SelectItem key={office.value} value={office.value}>
-                      {office.label}
-                    </SelectItem>
-                  ))}
+                  {isLoadingOffices ? (
+                    <SelectItem value="loading" disabled>Cargando oficinas...</SelectItem>
+                  ) : activeOffices.length > 0 ? (
+                    activeOffices.map(office => (
+                      <SelectItem key={office.value} value={office.value}>
+                        {office.label}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-offices" disabled>No hay oficinas disponibles</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -205,7 +222,7 @@ export function EditUserModal({ user, isOpen, onClose, onSave, isLoading = false
             <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>
               Cerrar
             </Button>
-            <Button type="submit" disabled={isSaving}>
+            <Button type="submit" disabled={isSaving || isLoadingOffices}>
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

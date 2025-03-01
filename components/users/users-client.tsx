@@ -79,7 +79,9 @@ export function UsersClient({ initialUsers, userType }: UsersClientProps) {
           case 'role':
             return user.role.toLowerCase() === value.toLowerCase()
           case 'office':
-            return user.office.toLowerCase() === value.toLowerCase()
+            // Convertimos office a string para comparación segura
+            const userOffice = String(user.office).toLowerCase()
+            return userOffice === value.toLowerCase()
           case 'status':
             return user.status.toLowerCase() === value.toLowerCase()
           default:
