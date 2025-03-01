@@ -20,6 +20,13 @@ export interface TicketUser {
   email: string
 }
 
+// Interfaz para el operador asignado internamente
+export interface InternalAssignee {
+  id: number
+  name: string
+  email: string
+}
+
 export interface Ticket {
   id: number
   subject: string
@@ -35,6 +42,7 @@ export interface Ticket {
     id: number
     value: string | null
   }>
+  internal_assignee?: InternalAssignee  // Campo opcional para el operador asignado
 }
 
 interface TicketsClientProps {
@@ -44,12 +52,33 @@ interface TicketsClientProps {
 export function TicketsClient({ initialTickets }: TicketsClientProps) {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([])
+  const [operators, setOperators] = useState<{id: number, username: string, email: string, ticketCount: number}[]>([])
   const [filters, setFilters] = useState({
     subject: "",
     status: "all",
     user: "",
-    dateRange: "all"
+    dateRange: "all",
+    operator: ""  // Ahora será el ID del operador como string
   })
+
+  // Obtener los operadores al cargar el componente
+  useEffect(() => {
+    const fetchOperators = async () => {
+      try {
+        const response = await fetch('/api/zendesk/operators-with-ticket-counts');
+        if (response.ok) {
+          const data = await response.json();
+          setOperators(data);
+        } else {
+          console.error('Error fetching operators:', await response.text());
+        }
+      } catch (error) {
+        console.error('Error fetching operators:', error);
+      }
+    };
+
+    fetchOperators();
+  }, []);
 
   useEffect(() => {
     if (Array.isArray(initialTickets)) {
@@ -66,11 +95,18 @@ export function TicketsClient({ initialTickets }: TicketsClientProps) {
       const userName = ticket.user?.name || ""
       const userEmail = ticket.user?.email || ""
       
+      // Obtener el ID del operador asignado
+      const operatorId = ticket.internal_assignee?.id?.toString() || "";
+      
       const subjectMatch = ticketSubject.toLowerCase().includes(filters.subject.toLowerCase())
       const statusMatch = filters.status === "all" || ticketStatus.toLowerCase() === filters.status.toLowerCase()
       const userMatch = !filters.user || 
         userName.toLowerCase().includes(filters.user.toLowerCase()) ||
         userEmail.toLowerCase().includes(filters.user.toLowerCase())
+      
+      // Filtrado por operador por ID
+      const operatorMatch = !filters.operator || filters.operator === "all" || 
+        operatorId === filters.operator;
       
       // Date filtering logic
       let dateMatch = true
@@ -102,7 +138,7 @@ export function TicketsClient({ initialTickets }: TicketsClientProps) {
         }
       }
       
-      return subjectMatch && statusMatch && userMatch && dateMatch
+      return subjectMatch && statusMatch && userMatch && dateMatch && operatorMatch
     })
     
     setFilteredTickets(filtered)
@@ -120,7 +156,8 @@ export function TicketsClient({ initialTickets }: TicketsClientProps) {
       subject: "",
       status: "all",
       user: "",
-      dateRange: "all"
+      dateRange: "all",
+      operator: "all"  // Cambio aquí para usar "all" como valor por defecto
     })
   }
 
@@ -147,7 +184,7 @@ export function TicketsClient({ initialTickets }: TicketsClientProps) {
           <CardTitle className="text-lg">Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Asunto</label>
               <div className="relative">
@@ -207,6 +244,26 @@ export function TicketsClient({ initialTickets }: TicketsClientProps) {
                 </SelectContent>
               </Select>
             </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Operador Asignado</label>
+              <Select
+                value={filters.operator}
+                onValueChange={(value) => handleFilterChange("operator", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar operador" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los operadores</SelectItem>
+                  {operators.map(operator => (
+                    <SelectItem key={operator.id} value={operator.id.toString()}>
+                      {operator.username} ({operator.ticketCount} tickets)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
           <div className="flex justify-end mt-4">
@@ -214,7 +271,7 @@ export function TicketsClient({ initialTickets }: TicketsClientProps) {
               variant="outline" 
               size="sm"
               onClick={clearFilters}
-              disabled={!filters.subject && filters.status === "all" && !filters.user && filters.dateRange === "all"}
+              disabled={!filters.subject && filters.status === "all" && !filters.user && filters.dateRange === "all" && filters.operator === "all"}
             >
               <X className="mr-2 h-4 w-4" />
               Limpiar filtros

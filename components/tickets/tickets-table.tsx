@@ -67,6 +67,7 @@ export function TicketsTable({ tickets = [] }: TicketsTableProps) {
               <TableHead>Asunto</TableHead>
               <TableHead>Detalle</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead>Operador Asignado</TableHead>
               <TableHead>Creado</TableHead>
               <TableHead>Actualizado</TableHead>
             </TableRow>
@@ -99,6 +100,18 @@ export function TicketsTable({ tickets = [] }: TicketsTableProps) {
                   <Badge className={getStatusColor(ticket.status)}>
                     {ticket.status || 'Desconocido'}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {ticket.internal_assignee ? (
+                    <div className="flex flex-col">
+                      <span className="font-medium">{ticket.internal_assignee.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {ticket.internal_assignee.email}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Sin asignar</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <span className="text-sm">{formatDate(ticket.created_at)}</span>
