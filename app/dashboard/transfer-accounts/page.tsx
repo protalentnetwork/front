@@ -21,6 +21,8 @@ interface AccountData {
   status: string
   mp_client_id?: string
   mp_client_secret?: string
+  mp_public_key?: string
+  mp_access_token?: string
 }
 
 interface AccountResponse {
@@ -36,6 +38,8 @@ interface AccountResponse {
   status: string
   mp_client_id?: string
   mp_client_secret?: string
+  mp_public_key?: string
+  mp_access_token?: string
 }
 
 export default function TransferAccountsPage() {
@@ -50,11 +54,11 @@ export default function TransferAccountsPage() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/accounts`, {
         cache: 'no-store',
       })
-      
+
       if (!response.ok) {
         throw new Error('Error al obtener las cuentas')
       }
-      
+
       const data = await response.json()
       const transformedAccounts: TransferAccount[] = data.accounts.map((account: AccountResponse) => ({
         id: account.id.toString(),
@@ -69,8 +73,10 @@ export default function TransferAccountsPage() {
         isActive: account.status === 'active',
         mp_client_id: account.mp_client_id,
         mp_client_secret: account.mp_client_secret,
+        mp_public_key: account.mp_public_key,
+        mp_access_token: account.mp_access_token
       }))
-      
+
       setAccounts(transformedAccounts)
     } catch (error) {
       console.error('Error fetching accounts:', error)
@@ -96,6 +102,8 @@ export default function TransferAccountsPage() {
       if (updatedAccount.wallet === 'mercadopago') {
         if (updatedAccount.mp_client_id) accountData.mp_client_id = updatedAccount.mp_client_id
         if (updatedAccount.mp_client_secret) accountData.mp_client_secret = updatedAccount.mp_client_secret
+        if (updatedAccount.mp_public_key) accountData.mp_public_key = updatedAccount.mp_public_key
+        if (updatedAccount.mp_access_token) accountData.mp_access_token = updatedAccount.mp_access_token
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/accounts/${updatedAccount.id}`, {
