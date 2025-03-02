@@ -30,7 +30,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { TransferAccount } from '@/types/transfer-account'
 import { useEffect, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 
 const formSchema = z.object({
@@ -44,6 +44,8 @@ const formSchema = z.object({
   isActive: z.boolean(),
   mp_client_id: z.string().optional(),
   mp_client_secret: z.string().optional(),
+  mp_public_key: z.string().optional(),
+  mp_access_token: z.string().optional(),
 })
 
 interface EditTransferAccountModalProps {
@@ -58,7 +60,11 @@ export function EditTransferAccountModal({
   onConfirm,
 }: EditTransferAccountModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+  const [showClientId, setShowClientId] = useState(false)
+  const [showClientSecret, setShowClientSecret] = useState(false)
+  const [showPublicKey, setShowPublicKey] = useState(false)
+  const [showAccessToken, setShowAccessToken] = useState(false)
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -72,6 +78,8 @@ export function EditTransferAccountModal({
       isActive: account?.isActive ?? true,
       mp_client_id: account?.mp_client_id || '',
       mp_client_secret: account?.mp_client_secret || '',
+      mp_public_key: account?.mp_public_key || '',
+      mp_access_token: account?.mp_access_token || '',
     },
   })
 
@@ -88,6 +96,8 @@ export function EditTransferAccountModal({
         isActive: account.isActive,
         mp_client_id: account.mp_client_id || '',
         mp_client_secret: account.mp_client_secret || '',
+        mp_public_key: account.mp_public_key || '',
+        mp_access_token: account.mp_access_token || '',
       })
     }
   }, [account, form])
@@ -151,7 +161,7 @@ export function EditTransferAccountModal({
                 )}
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -180,7 +190,7 @@ export function EditTransferAccountModal({
                 )}
               />
             </div>
-            
+
             <FormField
               control={form.control}
               name="wallet"
@@ -207,7 +217,7 @@ export function EditTransferAccountModal({
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -236,38 +246,160 @@ export function EditTransferAccountModal({
                 )}
               />
             </div>
-            
+
             {watchWallet === 'mercadopago' && (
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="mp_client_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>MP Client ID</FormLabel>
-                      <FormControl>
-                        <Input {...field} disabled={isSubmitting} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="mp_client_secret"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>MP Client Secret</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="password" disabled={isSubmitting} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="mp_client_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>MP Client ID</FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type={showClientId ? "text" : "password"}
+                              disabled={isSubmitting}
+                            />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowClientId(!showClientId)}
+                            tabIndex={-1}
+                          >
+                            {showClientId ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                            <span className="sr-only">
+                              {showClientId ? "Ocultar" : "Mostrar"} Client ID
+                            </span>
+                          </Button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="mp_client_secret"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>MP Client Secret</FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type={showClientSecret ? "text" : "password"}
+                              disabled={isSubmitting}
+                            />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowClientSecret(!showClientSecret)}
+                            tabIndex={-1}
+                          >
+                            {showClientSecret ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                            <span className="sr-only">
+                              {showClientSecret ? "Ocultar" : "Mostrar"} Client Secret
+                            </span>
+                          </Button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="mp_public_key"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Public Key</FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type={showPublicKey ? "text" : "password"}
+                              disabled={isSubmitting}
+                            />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowPublicKey(!showPublicKey)}
+                            tabIndex={-1}
+                          >
+                            {showPublicKey ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                            <span className="sr-only">
+                              {showPublicKey ? "Ocultar" : "Mostrar"} Public Key
+                            </span>
+                          </Button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="mp_access_token"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Access Token</FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type={showAccessToken ? "text" : "password"}
+                              disabled={isSubmitting}
+                            />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowAccessToken(!showAccessToken)}
+                            tabIndex={-1}
+                          >
+                            {showAccessToken ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                            <span className="sr-only">
+                              {showAccessToken ? "Ocultar" : "Mostrar"} Access Token
+                            </span>
+                          </Button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </>
             )}
-            
+
             <FormField
               control={form.control}
               name="isActive"
@@ -286,17 +418,17 @@ export function EditTransferAccountModal({
                 </FormItem>
               )}
             />
-            
+
             <div className="flex justify-end gap-3 pt-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={(open) => !open && !isSubmitting && onClose()}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
                 disabled={isSubmitting}
               >
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 type="submit"
                 disabled={isSubmitting}
               >
@@ -315,4 +447,4 @@ export function EditTransferAccountModal({
       </DialogContent>
     </Dialog>
   )
-} 
+}
