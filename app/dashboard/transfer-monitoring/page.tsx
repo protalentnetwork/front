@@ -69,7 +69,7 @@ export default function Page() {
     <RoleGuard allowedRoles={['admin', 'encargado']}>
       <div className="container mx-auto p-4">
         <h1 className="text-2xl font-bold mb-4">Monitoreo de Transferencias</h1>
-        
+
         {transactions.length === 0 ? (
           <Card className="p-8 text-center">
             <p className="text-muted-foreground">No hay transacciones disponibles</p>
@@ -99,8 +99,8 @@ export default function Page() {
                     <TableCell>{transaction.description || 'Sin descripción'}</TableCell>
                     <TableCell>{getStatusBadge(transaction.status)}</TableCell>
                     <TableCell>
-                      {transaction.date_created 
-                        ? new Date(transaction.date_created).toLocaleString() 
+                      {transaction.date_created
+                        ? new Date(transaction.date_created).toLocaleString()
                         : 'No disponible'}
                     </TableCell>
                     <TableCell>
@@ -113,13 +113,13 @@ export default function Page() {
                       {transaction.status === 'Aceptado' ? (
                         <Badge className="bg-green-100 text-green-800">Aceptado</Badge>
                       ) : (
-                        <Button 
+                        <Button
                           onClick={() => handleAccept(transaction.id)}
                           variant="default"
                           size="sm"
                           disabled={transaction.status === 'Aceptado'}
                         >
-                          Aceptar
+                          Pendiente
                         </Button>
                       )}
                     </TableCell>
