@@ -10,7 +10,6 @@ import { Socket } from 'socket.io-client';
 
 interface ChatPanelProps {
   selectedChat: string | null;
-  isConnected: boolean;
   activeChats: ChatData[];
   archivedChats: ChatData[];
   messages: Message[];
@@ -19,11 +18,11 @@ interface ChatPanelProps {
   socket: Socket;
   onSendMessage: (message: string) => void;
   onArchive: (userId: string) => void;
+  isUserConnected: (userId: string) => boolean;
 }
 
 export function ChatPanel({
   selectedChat,
-  isConnected,
   activeChats,
   archivedChats,
   messages,
@@ -31,7 +30,8 @@ export function ChatPanel({
   currentConversationId,
   socket,
   onSendMessage,
-  onArchive
+  onArchive,
+  isUserConnected
 }: ChatPanelProps) {
   const isActive = activeChats.some(chat => chat.chat_user_id === selectedChat);
   const isArchived = archivedChats.some(chat => chat.chat_user_id === selectedChat);
@@ -42,9 +42,9 @@ export function ChatPanel({
         <>
           <ChatHeader
             selectedChat={selectedChat}
-            isConnected={isConnected}
             activeChats={activeChats}
             onArchive={onArchive}
+            isUserConnected={isUserConnected}
           />
           <MessageList messages={messages} messagesEndRef={messagesEndRef} />
           {selectedChat && (

@@ -25,10 +25,13 @@ interface UseChatStateReturn {
   assignToMe: (userId: string, conversationId: string) => void;
   archiveChat: (userId: string) => void;
   getUsernameById: (id: string | null) => string;
+  connectedUsers: Set<string>;
+  isUserConnected: (userId: string) => boolean;
 }
 
 export function useChatState({ socket, agentId, agentName }: UseChatStateProps): UseChatStateReturn {
   const [activeChats, setActiveChats] = useState<ChatData[]>([]);
+  const [connectedUsers, setConnectedUsers] = useState<Set<string>>(new Set());
   const [pendingChats, setPendingChats] = useState<ChatData[]>([]);
   const [archivedChats, setArchivedChats] = useState<ChatData[]>([]);
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
@@ -127,10 +130,25 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
       toast.error(`Error de asignación: ${error.message}`);
     }
 
+    function onConnectionStatus(data: { type: 'user' | 'agent', id: string, status: 'connected' | 'disconnected' }) {
+      if (data.type === 'user') {
+        setConnectedUsers(prev => {
+          const newSet = new Set(prev);
+          if (data.status === 'connected') {
+            newSet.add(data.id);
+          } else {
+            newSet.delete(data.id);
+          }
+          return newSet;
+        });
+      }
+    }
+
     socket.on('activeChats', onActiveChats);
     socket.on('archivedChats', onArchivedChats);
     socket.on('agentAssigned', onAgentAssigned);
     socket.on('assignmentError', onAssignmentError);
+    socket.on('connectionStatus', onConnectionStatus);
 
     if (socket.connected) {
       socket.emit('getActiveChats');
@@ -142,6 +160,7 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
       socket.off('archivedChats', onArchivedChats);
       socket.off('agentAssigned', onAgentAssigned);
       socket.off('assignmentError', onAssignmentError);
+      socket.off('connectionStatus', onConnectionStatus);
     };
   }, [socket, agentId, assigningChat, selectedChat]);
 
@@ -306,6 +325,10 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
     toast.success(`Chat con Usuario ${userId} archivado correctamente`);
   }, [agentId, selectedChat, socket]);
 
+  const isUserConnected = useCallback((userId: string) => {
+    return connectedUsers.has(userId);
+  }, [connectedUsers]);
+
   return {
     activeChats,
     pendingChats,
@@ -320,6 +343,8 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
     selectChat,
     assignToMe,
     archiveChat,
-    getUsernameById
+    getUsernameById,
+    connectedUsers,
+    isUserConnected
   };
 } 

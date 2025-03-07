@@ -16,7 +16,6 @@ interface ChatListProps {
   archivedChats: ChatData[];
   selectedChat: string | null;
   selectedTab: ChatTab;
-  isConnected: boolean;
   assigningChat: string | null;
   isAuthenticated: boolean;
   getUsernameById: (id: string | null) => string;
@@ -24,6 +23,7 @@ interface ChatListProps {
   selectChat: (userId: string) => void;
   assignToMe: (userId: string, conversationId: string) => void;
   archiveChat: (userId: string) => void;
+  isUserConnected: (userId: string) => boolean;
 }
 
 export function ChatList({
@@ -32,21 +32,21 @@ export function ChatList({
   archivedChats,
   selectedChat,
   selectedTab,
-  isConnected,
   assigningChat,
   isAuthenticated,
   getUsernameById,
   setSelectedTab,
   selectChat,
   assignToMe,
-  archiveChat
+  archiveChat,
+  isUserConnected,
 }: ChatListProps) {
   const handleAssignToMe = (userId: string, conversationId: string) => {
     if (!isAuthenticated) {
       toast.error('Debes iniciar sesión para asignarte un chat');
       return;
     }
-    
+
     assignToMe(userId, conversationId);
   };
 
@@ -67,20 +67,23 @@ export function ChatList({
         chat={chat}
         type={type}
         isSelected={selectedChat === chat.chat_user_id}
-        isConnected={isConnected}
         assigningChat={assigningChat}
         isAuthenticated={isAuthenticated}
         getUsernameById={getUsernameById}
         onSelect={selectChat}
         onArchive={archiveChat}
         onAssign={handleAssignToMe}
+        isUserConnected={isUserConnected}
       />
     ));
   };
 
   return (
     <Card className="w-full md:w-1/3 mb-2 sm:mb-4 md:mb-0 overflow-hidden">
-      <Tabs defaultValue="active" value={selectedTab} onValueChange={(value) => setSelectedTab(value as ChatTab)} className="h-full flex flex-col overflow-hidden">
+      <Tabs 
+      defaultValue="active" value={selectedTab} 
+      onValueChange={(value) => setSelectedTab(value as ChatTab)} 
+      className="h-full flex flex-col overflow-hidden">
         <div className="p-2 sm:p-4 sm:pb-0">
           <TabsList className="w-full min-w-0 grid grid-cols-3 p-1 h-auto">
             <TabsTrigger

@@ -51,6 +51,8 @@ export function useSocket({ agentId, agentName = 'Agente sin nombre', agentRole 
       socket.emit('getActiveChats');
       socket.emit('getArchivedChats');
 
+      socket.emit('getConnectedUsers');
+      
       setTimeout(() => {
         toast.success('Conectado al servidor de chat');
       }, 100);

@@ -34,7 +34,8 @@ export default function ChatDashboard() {
     selectChat,
     assignToMe,
     archiveChat,
-    getUsernameById
+    getUsernameById,
+    isUserConnected
   } = useChatState({
     socket,
     agentId,
@@ -86,7 +87,6 @@ export default function ChatDashboard() {
         archivedChats={archivedChats}
         selectedChat={selectedChat}
         selectedTab={selectedTab}
-        isConnected={isConnected}
         assigningChat={assigningChat}
         isAuthenticated={isAuthenticated}
         getUsernameById={getUsernameById}
@@ -94,11 +94,11 @@ export default function ChatDashboard() {
         selectChat={selectChat}
         assignToMe={assignToMe}
         archiveChat={archiveChat}
+        isUserConnected={isUserConnected}
       />
 
       <ChatPanel
         selectedChat={selectedChat}
-        isConnected={isConnected}
         activeChats={activeChats}
         archivedChats={archivedChats}
         messages={messages}
@@ -107,6 +107,7 @@ export default function ChatDashboard() {
         socket={socket}
         onSendMessage={sendMessage}
         onArchive={archiveChat}
+        isUserConnected={isUserConnected}
       />
     </div>
   );
