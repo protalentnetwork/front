@@ -24,6 +24,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { NotificationBadge } from "./notification-badge"
+import { useNotifications } from "@/lib/NotificationContext"
 
 export function NavProjects({
   projects,
@@ -37,6 +39,8 @@ export function NavProjects({
   title: string
 }) {
   const { isMobile } = useSidebar()
+  const { unreadMessages, unreadChats } = useNotifications();
+  const totalChatNotifications = unreadMessages + unreadChats;
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -48,6 +52,7 @@ export function NavProjects({
               <a href={item.url}>
                 <item.icon />
                 <span>{item.name}</span>
+                {item.name === 'Chat con clientes' && <NotificationBadge count={totalChatNotifications} />}
               </a>
             </SidebarMenuButton>
             <DropdownMenu>

@@ -1,4 +1,4 @@
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -14,6 +14,10 @@ export function useAuth(requireAuth = true) {
     }
   }, [status, requireAuth, router]);
 
+  const logout = () => {
+    signOut({ redirect: false });
+  }
+
   return {
     user: session?.user,
     role: session?.user?.role,
@@ -21,6 +25,7 @@ export function useAuth(requireAuth = true) {
     isManager: session?.user?.role === 'encargado',
     isOperator: session?.user?.role === 'operador',
     isLoading: status === 'loading',
-    isAuthenticated: status === 'authenticated'
+    isAuthenticated: status === 'authenticated',
+    logout
   };
 }

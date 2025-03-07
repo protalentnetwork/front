@@ -9,6 +9,7 @@ import { Archive, Clock, MessageSquare } from 'lucide-react';
 import { ChatItem } from './ChatItem';
 import { ChatData, ChatTab } from '../types';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ChatListProps {
   activeChats: ChatData[];
@@ -41,6 +42,12 @@ export function ChatList({
   archiveChat,
   isUserConnected,
 }: ChatListProps) {
+  const { user } = useAuth();
+  const currentAgentId = user?.id;
+
+  // Filtrar chats activos para mostrar solo los asignados al agente actual
+  const myActiveChats = activeChats.filter(chat => chat.chat_agent_id === currentAgentId);
+  
   const handleAssignToMe = (userId: string, conversationId: string) => {
     if (!isAuthenticated) {
       toast.error('Debes iniciar sesión para asignarte un chat');
@@ -54,7 +61,7 @@ export function ChatList({
     if (chats.length === 0) {
       return (
         <div className="text-center py-8 text-muted-foreground text-sm">
-          {type === 'active' && 'No hay chats activos en este momento'}
+          {type === 'active' && 'No hay chats activos asignados a ti en este momento'}
           {type === 'pending' && 'No hay chats pendientes en este momento'}
           {type === 'archived' && 'No hay chats archivados en este momento'}
         </div>
@@ -92,9 +99,9 @@ export function ChatList({
             >
               <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
               <span className="hidden md:inline ml-1 truncate">Activos</span>
-              {activeChats.length > 0 && (
+              {myActiveChats.length > 0 && (
                 <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 min-w-0 h-4 flex items-center justify-center">
-                  {activeChats.length}
+                  {myActiveChats.length}
                 </Badge>
               )}
             </TabsTrigger>
@@ -127,7 +134,7 @@ export function ChatList({
 
         <ScrollArea className="flex-1 px-2 sm:px-4 pt-2">
           <TabsContent value="active" className="mt-2 space-y-2">
-            {renderChatList(activeChats, 'active')}
+            {renderChatList(myActiveChats, 'active')}
           </TabsContent>
           <TabsContent value="pending" className="mt-2 space-y-2">
             {renderChatList(pendingChats, 'pending')}
@@ -139,4 +146,4 @@ export function ChatList({
       </Tabs>
     </Card>
   );
-} 
+}

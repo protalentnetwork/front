@@ -1,111 +1,50 @@
-import { useState, useEffect } from 'react';
-import io, { Socket } from 'socket.io-client';
-import { toast } from 'sonner';
-
-// Socket configuration
-const createSocket = (): Socket => {
-  return io('https://backoffice-casino-back-production.up.railway.app', {
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    timeout: 20000,
-    forceNew: true,
-  });
-};
-
-interface UseSocketProps {
-  agentId: string;
-  agentName?: string | null;
-  agentRole?: string | null;
-}
-
+import { useEffect, useState } from 'react';
+import { useSocket as useGlobalSocket } from '@/lib/SocketContext';
+import { Socket } from 'socket.io-client';
 interface UseSocketReturn {
-  socket: Socket;
+  socket: Socket | null;
   isConnected: boolean;
   isLoading: boolean;
   error: string | null;
 }
 
-export function useSocket({ agentId, agentName = 'Agente sin nombre', agentRole = 'guest' }: UseSocketProps): UseSocketReturn {
-  const [socket] = useState<Socket>(() => createSocket());
-  const [isConnected, setIsConnected] = useState(false);
+export function useSocket(): UseSocketReturn {
+  const { socket, isConnected } = useGlobalSocket();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  
   useEffect(() => {
-    function onConnect() {
-      setIsConnected(true);
+    // Actualizar estado de carga basado en la disponibilidad del socket
+    if (socket) {
       setIsLoading(false);
       setError(null);
-
-      // Join as agent with more complete information
-      socket.emit('joinAgent', {
-        agentId,
-        agentName: agentName || 'Agente sin nombre',
-        agentRole: agentRole || 'guest'
-      });
-
-      // Request current chats after connection
+    } else {
+      // Establecer un temporizador para mostrar error si el socket no se conecta después de un tiempo
+      const timer = setTimeout(() => {
+        if (!socket) {
+          setError('No se pudo conectar al servidor de chat');
+          setIsLoading(false);
+        }
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [socket]);
+  
+  useEffect(() => {
+    // Inicialización específica de la página de chat
+    if (socket && isConnected) {
+      // Solicitar chats activos y archivados específicamente para la página de chat
       socket.emit('getActiveChats');
       socket.emit('getArchivedChats');
-
       socket.emit('getConnectedUsers');
-      
-      setTimeout(() => {
-        toast.success('Conectado al servidor de chat');
-      }, 100);
     }
-
-    function onConnectError(error: Error) {
-      console.error('Error de conexión socket:', error);
-      setError(`Error de conexión: ${error.message}`);
-      setIsLoading(false);
-
-      setTimeout(() => {
-        toast.error(`Error de conexión: ${error.message}`);
-      }, 100);
-    }
-
-    function onDisconnect(reason: string) {
-      setIsConnected(false);
-
-      setTimeout(() => {
-        toast.error(`Se perdió la conexión con el servidor: ${reason}`);
-      }, 100);
-    }
-
-    function onPing() {
-      socket.emit('pong');
-    }
-
-    // Register event listeners
-    socket.on('connect', onConnect);
-    socket.on('connect_error', onConnectError);
-    socket.on('disconnect', onDisconnect);
-    socket.on('ping', onPing);
-
-    // Periodic ping to keep connection alive
-    const pingInterval = setInterval(() => {
-      if (socket.connected) {
-        socket.emit('checkConnection');
-      }
-    }, 30000);
-
-    return () => {
-      clearInterval(pingInterval);
-      socket.off('connect', onConnect);
-      socket.off('connect_error', onConnectError);
-      socket.off('disconnect', onDisconnect);
-      socket.off('ping', onPing);
-    };
-  }, [socket, agentId, agentName, agentRole]);
+  }, [socket, isConnected]);
 
   return {
     socket,
-    isConnected,
+    isConnected: !!socket && isConnected,
     isLoading,
     error
   };
-} 
+}

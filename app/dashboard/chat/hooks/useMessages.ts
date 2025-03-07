@@ -26,7 +26,6 @@ export function useMessages({
 }: UseMessagesProps): UseMessagesReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const recentNotifications = useRef<Map<string, number>>(new Map());
   // Tracking recently sent messages to prevent duplicates
   const sentMessagesRef = useRef<Set<string>>(new Set());
 
@@ -49,39 +48,7 @@ export function useMessages({
     }
   }, [selectedChat]);
 
-  // Prevent duplicate toast notifications
-  const showToastNotification = useCallback((message: Message) => {
-    const messageKey = `${message.userId}-${message.message.substring(0, 20)}-${new Date(message.timestamp).getTime()}`;
-    const now = Date.now();
-    
-    if (!recentNotifications.current.has(messageKey) || 
-        now - (recentNotifications.current.get(messageKey) || 0) > 2000) {
-      
-      recentNotifications.current.set(messageKey, now);
-      
-      // Clean up old notifications
-      for (const [key, timestamp] of recentNotifications.current.entries()) {
-        if (now - timestamp > 10000) {
-          recentNotifications.current.delete(key);
-        }
-      }
-      
-      if (message.sender === 'client') {
-        const isForCurrentChat = selectedChat === message.userId ||
-          (message.conversationId && message.conversationId === currentConversationId);
-          
-        if (isForCurrentChat) {
-          toast.info(`Nuevo mensaje de ${message.userId}`, {
-            description: message.message.substring(0, 50) + (message.message.length > 50 ? '...' : '')
-          });
-        } else {
-          toast.info(`Nuevo mensaje en otro chat de ${message.userId}`, {
-            description: message.message.substring(0, 50) + (message.message.length > 50 ? '...' : '')
-          });
-        }
-      }
-    }
-  }, [selectedChat, currentConversationId]);
+  // Removed the showToastNotification function since notifications are now handled globally
 
   useEffect(() => {
     function onMessageHistory(chatMessages: Message[]) {
@@ -152,28 +119,27 @@ export function useMessages({
             id: message.id || nanoid()
           };
 
-          showToastNotification(message);
-
           return [...prevMessages, newMessage];
         });
         
         scrollToBottom();
-      } else {
-        showToastNotification(message);
       }
     }
 
     // Register event listeners
-    socket.on('messageHistory', onMessageHistory);
-    socket.on('conversationMessages', onConversationMessages);
-    socket.on('newMessage', onNewMessage);
+    if (socket) {
+      socket.on('messageHistory', onMessageHistory);
+      socket.on('conversationMessages', onConversationMessages);
+      socket.on('newMessage', onNewMessage);
 
-    return () => {
-      socket.off('messageHistory', onMessageHistory);
-      socket.off('conversationMessages', onConversationMessages);
-      socket.off('newMessage', onNewMessage);
-    };
-  }, [socket, selectedChat, currentConversationId, scrollToBottom, showToastNotification]);
+      return () => {
+        socket.off('messageHistory', onMessageHistory);
+        socket.off('conversationMessages', onConversationMessages);
+        socket.off('newMessage', onNewMessage);
+      };
+    }
+  }, [socket, selectedChat, currentConversationId, scrollToBottom]);
+
 
   const sendMessage = useCallback((message: string) => {
     if (!selectedChat || !currentConversationId || !message.trim()) {

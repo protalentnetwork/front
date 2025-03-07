@@ -67,6 +67,8 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
   }, [fetchUsers]);
 
   useEffect(() => {
+    if (!socket) return;
+
     function onActiveChats(chats: { userId: string; agentId: string; conversationId: string }[]) {
       const active: ChatData[] = [];
       const pending: ChatData[] = [];
@@ -194,7 +196,7 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
       socket.emit('getConversationId', { userId }, (response: { success: boolean; conversationId?: string; error?: string }) => {
         if (response && response.success && response.conversationId) {
           setCurrentConversationId(response.conversationId);
-          
+
           setActiveChats(prev => {
             const chatIndex = prev.findIndex(chat => chat.chat_user_id === userId);
             if (chatIndex >= 0) {
@@ -207,7 +209,7 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
             }
             return prev;
           });
-          
+
           setPendingChats(prev => {
             const chatIndex = prev.findIndex(chat => chat.chat_user_id === userId);
             if (chatIndex >= 0) {
@@ -220,7 +222,7 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
             }
             return prev;
           });
-          
+
           setArchivedChats(prev => {
             const chatIndex = prev.findIndex(chat => chat.chat_user_id === userId);
             if (chatIndex >= 0) {
@@ -233,7 +235,7 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
             }
             return prev;
           });
-          
+
           socket.emit('selectConversation', {
             conversationId: response.conversationId,
             agentId
@@ -241,7 +243,7 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
         } else {
           const errorMessage = response?.error || 'No se encontró una conversación activa para este usuario';
           console.error('Error al obtener ID de conversación:', errorMessage);
-          
+
           toast.error('No se puede cargar esta conversación', {
             description: errorMessage,
             duration: 5000

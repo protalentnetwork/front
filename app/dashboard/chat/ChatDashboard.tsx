@@ -9,18 +9,14 @@ import { useChatState } from './hooks/useChatState';
 import { useMessages } from './hooks/useMessages';
 import { ChatList } from './components/ChatList';
 import { ChatPanel } from './components/ChatPanel';
-
+import { Socket } from 'socket.io-client';
 export default function ChatDashboard() {
   // Get authentication context
   const { user, isAuthenticated } = useAuth();
   const agentId = user?.id || 'guest';
 
   // Initialize socket connection
-  const { socket, isConnected, isLoading, error } = useSocket({
-    agentId,
-    agentName: user?.name,
-    agentRole: user?.role
-  });
+  const { socket, isConnected, isLoading, error } = useSocket();
 
   const {
     activeChats,
@@ -37,7 +33,7 @@ export default function ChatDashboard() {
     getUsernameById,
     isUserConnected
   } = useChatState({
-    socket,
+    socket: socket as Socket,
     agentId,
     isConnected,
     agentName: user?.name
@@ -49,7 +45,7 @@ export default function ChatDashboard() {
     sendMessage,
     messagesEndRef,
   } = useMessages({
-    socket,
+    socket: socket as Socket,
     selectedChat,
     currentConversationId,
     agentId
@@ -63,11 +59,11 @@ export default function ChatDashboard() {
     );
   }
 
-  if (error) {
+  if (error || !socket) {
     return (
       <div className="flex h-[calc(100vh-100px)] items-center justify-center">
         <div className="text-center">
-          <p className="text-destructive mb-4">{error}</p>
+          <p className="text-destructive mb-4">{error || 'No se pudo conectar al servidor de chat'}</p>
           <Button
             onClick={() => window.location.reload()}
             variant="outline"

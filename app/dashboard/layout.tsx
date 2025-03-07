@@ -6,6 +6,8 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { ModeToggle } from "@/components/mode-toggle";
 import { useAuth } from '@/hooks/useAuth'
 import { Loader2 } from "lucide-react";
+import { SocketProvider } from "@/lib/SocketContext";
+import { NotificationProvider } from "@/lib/NotificationContext";
 
 export default function DashboardLayout({
     children,
@@ -27,19 +29,23 @@ export default function DashboardLayout({
     }
 
     return (
-        <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>
-                <header className="flex h-16 shrink-0 items-center gap-2 justify-between px-4">
-                    <div className="flex items-center gap-2">
-                        <SidebarTrigger className="-ml-1" />
-                    </div>
-                    <ModeToggle />
-                </header>
-                <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-                    {children}
-                </div>
-            </SidebarInset>
-        </SidebarProvider>
+        <SocketProvider>
+            <NotificationProvider>
+                <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                        <header className="flex h-16 shrink-0 items-center gap-2 justify-between px-4">
+                            <div className="flex items-center gap-2">
+                                <SidebarTrigger className="-ml-1" />
+                            </div>
+                            <ModeToggle />
+                        </header>
+                        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+                            {children}
+                        </div>
+                    </SidebarInset>
+                </SidebarProvider>
+            </NotificationProvider>
+        </SocketProvider>
     )
 }
