@@ -41,7 +41,6 @@ export function NavUser({
   const handleLogout = async () => {
     try {
       await signOut({ redirect: false });
-      localStorage.removeItem('socket_connect_toast_shown');
       // Usamos setTimeout para evitar problemas de actualización de estado
       setTimeout(() => {
         toast.success('Sesión cerrada correctamente');

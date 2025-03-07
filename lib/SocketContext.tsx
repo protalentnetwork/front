@@ -61,9 +61,6 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     // Only initialize socket if we have a user
     if (!user) return;
 
-    // Check if we've already shown the connection toast in this session
-    const hasShownToast = localStorage.getItem('socket_connect_toast_shown') === 'true';
-
     const socketInstance = createSocket();
     setSocket(socketInstance);
 
@@ -81,15 +78,6 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       socketInstance.emit('getActiveChats');
       socketInstance.emit('getArchivedChats');
       socketInstance.emit('getConnectedUsers');
-
-      // Only show the toast on initial connection in this browser session
-      // and only for authorized roles
-      if (!hasShownToast && hasAuthorizedRole) {
-        setTimeout(() => {
-          toast.success('Conectado al servidor de chat');
-          localStorage.setItem('socket_connect_toast_shown', 'true');
-        }, 100);
-      }
     }
 
     function onConnectError(error: Error) {
@@ -106,7 +94,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       setIsConnected(false);
 
       // Only show disconnect toast for authorized roles
-      if (hasShownToast && reason !== 'io client disconnect' && hasAuthorizedRole) {
+      if (reason !== 'io client disconnect' && hasAuthorizedRole) {
         toast.error(`Se perdió la conexión con el servidor: ${reason}`);
       }
     }
