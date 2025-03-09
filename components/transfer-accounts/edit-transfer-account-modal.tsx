@@ -32,6 +32,8 @@ import { TransferAccount } from '@/types/transfer-account'
 import { useEffect, useState } from 'react'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
+import { PasswordVerificationModal } from '@/components/password-verification-modal'
+import { usePasswordVerification } from '@/hooks/usePasswordVerification'
 
 const formSchema = z.object({
   userName: z.string().min(1, 'El nombre es requerido'),
@@ -64,6 +66,15 @@ export function EditTransferAccountModal({
   const [showClientSecret, setShowClientSecret] = useState(false)
   const [showPublicKey, setShowPublicKey] = useState(false)
   const [showAccessToken, setShowAccessToken] = useState(false)
+  
+  const {
+    verifyingField,
+    startVerification,
+    cancelVerification,
+    handleVerificationResult,
+    isFieldVerified,
+    userEmail
+  } = usePasswordVerification()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -122,329 +133,428 @@ export function EditTransferAccountModal({
     }
   }
 
+  // Manejadores para mostrar/ocultar campos sensibles con verificación
+  const handleToggleClientId = () => {
+    if (showClientId) {
+      setShowClientId(false)
+    } else if (isFieldVerified('mp_client_id')) {
+      setShowClientId(true)
+    } else {
+      startVerification('mp_client_id')
+    }
+  }
+
+  const handleToggleClientSecret = () => {
+    if (showClientSecret) {
+      setShowClientSecret(false)
+    } else if (isFieldVerified('mp_client_secret')) {
+      setShowClientSecret(true)
+    } else {
+      startVerification('mp_client_secret')
+    }
+  }
+
+  const handleTogglePublicKey = () => {
+    if (showPublicKey) {
+      setShowPublicKey(false)
+    } else if (isFieldVerified('mp_public_key')) {
+      setShowPublicKey(true)
+    } else {
+      startVerification('mp_public_key')
+    }
+  }
+
+  const handleToggleAccessToken = () => {
+    if (showAccessToken) {
+      setShowAccessToken(false)
+    } else if (isFieldVerified('mp_access_token')) {
+      setShowAccessToken(true)
+    } else {
+      startVerification('mp_access_token')
+    }
+  }
+
+  // Manejador para la verificación exitosa
+  const handleVerificationSuccess = (success: boolean) => {
+    if (verifyingField) {
+      handleVerificationResult(verifyingField, success)
+      
+      // Si la verificación fue exitosa, mostrar el campo correspondiente
+      if (success) {
+        switch (verifyingField) {
+          case 'mp_client_id':
+            setShowClientId(true)
+            break
+          case 'mp_client_secret':
+            setShowClientSecret(true)
+            break
+          case 'mp_public_key':
+            setShowPublicKey(true)
+            break
+          case 'mp_access_token':
+            setShowAccessToken(true)
+            break
+        }
+      }
+    }
+  }
+
+  // Obtener el nombre amigable del campo para mostrar en el modal
+  const getFieldDisplayName = (fieldName: string) => {
+    switch (fieldName) {
+      case 'mp_client_id':
+        return 'MP Client ID'
+      case 'mp_client_secret':
+        return 'MP Client Secret'
+      case 'mp_public_key':
+        return 'Public Key'
+      case 'mp_access_token':
+        return 'Access Token'
+      default:
+        return fieldName
+    }
+  }
+
   return (
-    <Dialog open={!!account} onOpenChange={(open) => !open && !isSubmitting && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Editar cuenta de transferencia</DialogTitle>
-          <DialogDescription>
-            Modifica los datos de la cuenta de transferencia.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="userName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled={isSubmitting} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="office"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Oficina</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled={isSubmitting} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+    <>
+      <Dialog open={!!account} onOpenChange={(open) => !open && !isSubmitting && onClose()}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Editar cuenta de transferencia</DialogTitle>
+            <DialogDescription>
+              Modifica los datos de la cuenta de transferencia.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="userName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="office"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Oficina</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="cbu"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CBU</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="alias"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Alias</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
-                name="cbu"
+                name="wallet"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>CBU</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled={isSubmitting} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="alias"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Alias</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled={isSubmitting} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="wallet"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo de billetera</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                    disabled={isSubmitting}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar tipo" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="mercadopago">Mercado Pago</SelectItem>
-                      <SelectItem value="paypal">PayPal</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="operator"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Operador</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled={isSubmitting} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="agent"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Agente</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled={isSubmitting} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {watchWallet === 'mercadopago' && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="mp_client_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>MP Client ID</FormLabel>
-                        <div className="relative">
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type={showClientId ? "text" : "password"}
-                              disabled={isSubmitting}
-                            />
-                          </FormControl>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowClientId(!showClientId)}
-                            tabIndex={-1}
-                          >
-                            {showClientId ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                            <span className="sr-only">
-                              {showClientId ? "Ocultar" : "Mostrar"} Client ID
-                            </span>
-                          </Button>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="mp_client_secret"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>MP Client Secret</FormLabel>
-                        <div className="relative">
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type={showClientSecret ? "text" : "password"}
-                              disabled={isSubmitting}
-                            />
-                          </FormControl>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowClientSecret(!showClientSecret)}
-                            tabIndex={-1}
-                          >
-                            {showClientSecret ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                            <span className="sr-only">
-                              {showClientSecret ? "Ocultar" : "Mostrar"} Client Secret
-                            </span>
-                          </Button>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="mp_public_key"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Public Key</FormLabel>
-                        <div className="relative">
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type={showPublicKey ? "text" : "password"}
-                              disabled={isSubmitting}
-                            />
-                          </FormControl>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowPublicKey(!showPublicKey)}
-                            tabIndex={-1}
-                          >
-                            {showPublicKey ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                            <span className="sr-only">
-                              {showPublicKey ? "Ocultar" : "Mostrar"} Public Key
-                            </span>
-                          </Button>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="mp_access_token"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Access Token</FormLabel>
-                        <div className="relative">
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type={showAccessToken ? "text" : "password"}
-                              disabled={isSubmitting}
-                            />
-                          </FormControl>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowAccessToken(!showAccessToken)}
-                            tabIndex={-1}
-                          >
-                            {showAccessToken ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                            <span className="sr-only">
-                              {showAccessToken ? "Ocultar" : "Mostrar"} Access Token
-                            </span>
-                          </Button>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </>
-            )}
-
-            <FormField
-              control={form.control}
-              name="isActive"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                  <div className="space-y-0.5">
-                    <FormLabel>Estado</FormLabel>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
+                    <FormLabel>Tipo de billetera</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
                       disabled={isSubmitting}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isSubmitting}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Guardando...
-                  </>
-                ) : (
-                  'Guardar'
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="mercadopago">Mercado Pago</SelectItem>
+                        <SelectItem value="paypal">PayPal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="operator"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Operador</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="agent"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Agente</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled={isSubmitting} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {watchWallet === 'mercadopago' && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="mp_client_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>MP Client ID</FormLabel>
+                          <div className="relative">
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type={showClientId ? "text" : "password"}
+                                disabled={isSubmitting}
+                                className="pr-10"
+                              />
+                            </FormControl>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3"
+                              onClick={handleToggleClientId}
+                              tabIndex={-1}
+                            >
+                              {showClientId ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                              <span className="sr-only">
+                                {showClientId ? "Ocultar" : "Mostrar"} Client ID
+                              </span>
+                            </Button>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="mp_client_secret"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>MP Client Secret</FormLabel>
+                          <div className="relative">
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type={showClientSecret ? "text" : "password"}
+                                disabled={isSubmitting}
+                                className="pr-10"
+                              />
+                            </FormControl>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3"
+                              onClick={handleToggleClientSecret}
+                              tabIndex={-1}
+                            >
+                              {showClientSecret ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                              <span className="sr-only">
+                                {showClientSecret ? "Ocultar" : "Mostrar"} Client Secret
+                              </span>
+                            </Button>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="mp_public_key"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Public Key</FormLabel>
+                          <div className="relative">
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type={showPublicKey ? "text" : "password"}
+                                disabled={isSubmitting}
+                                className="pr-10"
+                              />
+                            </FormControl>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3"
+                              onClick={handleTogglePublicKey}
+                              tabIndex={-1}
+                            >
+                              {showPublicKey ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                              <span className="sr-only">
+                                {showPublicKey ? "Ocultar" : "Mostrar"} Public Key
+                              </span>
+                            </Button>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="mp_access_token"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Access Token</FormLabel>
+                          <div className="relative">
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type={showAccessToken ? "text" : "password"}
+                                disabled={isSubmitting}
+                                className="pr-10"
+                              />
+                            </FormControl>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3"
+                              onClick={handleToggleAccessToken}
+                              tabIndex={-1}
+                            >
+                              {showAccessToken ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                              <span className="sr-only">
+                                {showAccessToken ? "Ocultar" : "Mostrar"} Access Token
+                              </span>
+                            </Button>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </>
+              )}
+
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Estado</FormLabel>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isSubmitting}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    'Guardar'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de verificación de contraseña */}
+      {verifyingField && (
+        <PasswordVerificationModal
+          isOpen={!!verifyingField}
+          onClose={cancelVerification}
+          onVerify={handleVerificationSuccess}
+          fieldName={getFieldDisplayName(verifyingField)}
+          userEmail={userEmail}
+        />
+      )}
+    </>
   )
 }

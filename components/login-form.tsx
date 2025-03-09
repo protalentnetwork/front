@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Loader2 } from "lucide-react"
+import { signIn } from "next-auth/react"
+import { toast } from "sonner"
 
 export function LoginForm({
   className,
@@ -14,12 +16,39 @@ export function LoginForm({
 }: React.ComponentPropsWithoutRef<"div">) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const emailRef = useRef<HTMLInputElement>(null)
+  const passwordRef = useRef<HTMLInputElement>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!emailRef.current?.value || !passwordRef.current?.value) {
+      toast.error("Por favor, ingresa tu email y contraseña")
+      return
+    }
+    
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    router.push("/dashboard/users")
+    
+    try {
+      const result = await signIn("credentials", {
+        email: emailRef.current.value,
+        password: passwordRef.current.value,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        toast.error("Credenciales inválidas")
+        setIsLoading(false)
+        return
+      }
+
+      router.push("/dashboard")
+      router.refresh()
+    } catch (error) {
+      console.error("Error al iniciar sesión:", error)
+      toast.error("Error al iniciar sesión")
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -27,7 +56,7 @@ export function LoginForm({
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col gap-6">
           <div className="flex flex-col items-center gap-2">
-            <h1 className="text-xl font-bold">Welcome to the Admin Panel</h1>
+            <h1 className="text-xl font-bold">Bienvenido al Panel de Administración</h1>
           </div>
           <div className="flex flex-col gap-6">
             <div className="grid gap-2">
@@ -35,24 +64,30 @@ export function LoginForm({
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@admin.com"
+                placeholder="admin@example.com"
                 required
+                ref={emailRef}
               />
             </div>
             <div className="grid gap-2">
               <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Contraseña</Label>
               </div>
-              <Input id="password" type="password" required />
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                ref={passwordRef}
+              />
             </div>
             <Button disabled={isLoading} type="submit" className="w-full">
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Please wait
+                  Iniciando sesión...
                 </>
               ) : (
-                "Login"
+                "Iniciar sesión"
               )}
             </Button>
           </div>
