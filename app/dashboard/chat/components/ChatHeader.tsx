@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Archive } from 'lucide-react';
 import { ChatData } from '../types';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ChatHeaderProps {
   selectedChat: string | null;
@@ -21,7 +22,18 @@ export function ChatHeader({
 }: ChatHeaderProps) {
   if (!selectedChat) return null;
 
-  const isActive = activeChats.some(chat => chat.chat_user_id === selectedChat);
+  // Verificar si el chat está activo
+  const activeChat = activeChats.find(chat => chat.chat_user_id === selectedChat);
+  const isActive = !!activeChat;
+  
+  // Verificar si el chat está asignado al agente actual
+  const { user } = useAuth();
+  const currentAgentId = user?.id;
+  const isAssignedToCurrentAgent = activeChat?.chat_agent_id === currentAgentId;
+  
+  // Solo mostrar el botón de archivar si el chat está activo y asignado al agente actual
+  const showArchiveButton = isActive && isAssignedToCurrentAgent;
+  
   const connected = isUserConnected(selectedChat);
 
   return (
@@ -51,7 +63,7 @@ export function ChatHeader({
             {connected ? 'Conectado' : 'Desconectado'}
           </Badge>
 
-          {isActive && (
+          {showArchiveButton && (
             <Button
               onClick={() => onArchive(selectedChat)}
               variant="outline"

@@ -146,11 +146,36 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
       }
     }
 
+    function onChatArchived(data: { conversationId: string }) {
+      console.log('Chat archivado:', data);
+      
+      const chatToArchive = activeChats.find(chat => chat.conversationId === data.conversationId);
+      
+      if (chatToArchive) {
+        const userId = chatToArchive.chat_user_id;
+        
+        setActiveChats(prev => prev.filter(chat => chat.chat_user_id !== userId));
+        setArchivedChats(prev => [
+          ...prev,
+          {
+            ...chatToArchive,
+            status: 'archived'
+          }
+        ]);
+        
+        if (selectedChat === userId) {
+          setSelectedChat(null);
+          toast.info(`El chat con Usuario ${userId} ha sido archivado`);
+        }
+      }
+    }
+
     socket.on('activeChats', onActiveChats);
     socket.on('archivedChats', onArchivedChats);
     socket.on('agentAssigned', onAgentAssigned);
     socket.on('assignmentError', onAssignmentError);
     socket.on('connectionStatus', onConnectionStatus);
+    socket.on('chatArchived', onChatArchived);
 
     if (socket.connected) {
       socket.emit('getActiveChats');
@@ -163,8 +188,9 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
       socket.off('agentAssigned', onAgentAssigned);
       socket.off('assignmentError', onAssignmentError);
       socket.off('connectionStatus', onConnectionStatus);
+      socket.off('chatArchived', onChatArchived);
     };
-  }, [socket, agentId, assigningChat, selectedChat]);
+  }, [socket, agentId, assigningChat, selectedChat, activeChats]);
 
   useEffect(() => {
     if (currentConversationId && socket.connected) {
@@ -193,55 +219,70 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
         agentId
       });
     } else {
-      socket.emit('getConversationId', { userId }, (response: { success: boolean; conversationId?: string; error?: string }) => {
+      const isArchived = selectedTab === 'archived';
+      
+      socket.emit('getConversationId', { 
+        userId, 
+        isArchived 
+      }, (response: { success: boolean; conversationId?: string; error?: string }) => {
         if (response && response.success && response.conversationId) {
           setCurrentConversationId(response.conversationId);
 
-          setActiveChats(prev => {
-            const chatIndex = prev.findIndex(chat => chat.chat_user_id === userId);
-            if (chatIndex >= 0) {
-              const updatedChats = [...prev];
-              updatedChats[chatIndex] = {
-                ...updatedChats[chatIndex],
-                conversationId: response.conversationId
-              };
-              return updatedChats;
-            }
-            return prev;
-          });
+          if (isArchived) {
+            setArchivedChats(prev => {
+              const chatIndex = prev.findIndex(chat => chat.chat_user_id === userId);
+              if (chatIndex >= 0) {
+                const updatedChats = [...prev];
+                updatedChats[chatIndex] = {
+                  ...updatedChats[chatIndex],
+                  conversationId: response.conversationId
+                };
+                return updatedChats;
+              }
+              return [
+                ...prev,
+                {
+                  chat_user_id: userId,
+                  chat_agent_id: null,
+                  status: 'archived',
+                  conversationId: response.conversationId
+                }
+              ];
+            });
+          } else {
+            setActiveChats(prev => {
+              const chatIndex = prev.findIndex(chat => chat.chat_user_id === userId);
+              if (chatIndex >= 0) {
+                const updatedChats = [...prev];
+                updatedChats[chatIndex] = {
+                  ...updatedChats[chatIndex],
+                  conversationId: response.conversationId
+                };
+                return updatedChats;
+              }
+              return prev;
+            });
 
-          setPendingChats(prev => {
-            const chatIndex = prev.findIndex(chat => chat.chat_user_id === userId);
-            if (chatIndex >= 0) {
-              const updatedChats = [...prev];
-              updatedChats[chatIndex] = {
-                ...updatedChats[chatIndex],
-                conversationId: response.conversationId
-              };
-              return updatedChats;
-            }
-            return prev;
-          });
-
-          setArchivedChats(prev => {
-            const chatIndex = prev.findIndex(chat => chat.chat_user_id === userId);
-            if (chatIndex >= 0) {
-              const updatedChats = [...prev];
-              updatedChats[chatIndex] = {
-                ...updatedChats[chatIndex],
-                conversationId: response.conversationId
-              };
-              return updatedChats;
-            }
-            return prev;
-          });
+            setPendingChats(prev => {
+              const chatIndex = prev.findIndex(chat => chat.chat_user_id === userId);
+              if (chatIndex >= 0) {
+                const updatedChats = [...prev];
+                updatedChats[chatIndex] = {
+                  ...updatedChats[chatIndex],
+                  conversationId: response.conversationId
+                };
+                return updatedChats;
+              }
+              return prev;
+            });
+          }
 
           socket.emit('selectConversation', {
             conversationId: response.conversationId,
             agentId
           });
         } else {
-          const errorMessage = response?.error || 'No se encontró una conversación activa para este usuario';
+          const errorMessage = response?.error || 'No se encontró una conversación para este usuario';
           console.error('Error al obtener ID de conversación:', errorMessage);
 
           toast.error('No se puede cargar esta conversación', {
@@ -251,7 +292,7 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
         }
       });
     }
-  }, [activeChats, pendingChats, archivedChats, agentId, socket]);
+  }, [activeChats, pendingChats, archivedChats, agentId, socket, selectedTab]);
 
   const assignToMe = useCallback((userId: string, conversationId: string) => {
     const loadingToast = toast.loading('Asignando chat...');
@@ -308,7 +349,19 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
   }, [agentId, selectChat, socket, agentName]);
 
   const archiveChat = useCallback((userId: string) => {
-    socket.emit('archiveChat', { userId, agentId });
+    const chatToArchive = activeChats.find(chat => chat.chat_user_id === userId);
+    const conversationId = chatToArchive?.conversationId;
+
+    if (!conversationId) {
+      toast.error('No se puede archivar el chat: ID de conversación no encontrado');
+      return;
+    }
+
+    socket.emit('archiveChat', { 
+      userId, 
+      agentId, 
+      conversationId 
+    });
 
     setActiveChats(prev => prev.filter(chat => chat.chat_user_id !== userId));
     setArchivedChats(prev => [
@@ -316,7 +369,8 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
       {
         chat_user_id: userId,
         chat_agent_id: agentId,
-        status: 'archived'
+        status: 'archived',
+        conversationId
       }
     ]);
 
@@ -324,8 +378,10 @@ export function useChatState({ socket, agentId, agentName }: UseChatStateProps):
       setSelectedChat(null);
     }
 
+    setSelectedTab('archived');
+
     toast.success(`Chat con Usuario ${userId} archivado correctamente`);
-  }, [agentId, selectedChat, socket]);
+  }, [agentId, selectedChat, socket, activeChats, setSelectedTab]);
 
   const isUserConnected = useCallback((userId: string) => {
     return connectedUsers.has(userId);

@@ -105,7 +105,7 @@ export function ChatItem({
                   }}
                   variant="outline"
                   size="sm"
-                  className="text-[10px] sm:text-xs h-6 py-0 ml-2 flex-shrink-0"
+                  className="text-[10px] sm:text-xs h-6 py-0 ml-2 flex-shrink-0 border border-primary-foreground"
                 >
                   <Archive className="h-3 w-3 mr-1" />
                   <span className="hidden sm:inline">Archivar</span>
