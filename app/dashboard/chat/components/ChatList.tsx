@@ -44,11 +44,20 @@ export function ChatList({
   unarchiveChat,
   isUserConnected,
 }: ChatListProps) {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const currentAgentId = user?.id;
 
   // Filtrar chats activos para mostrar solo los asignados al agente actual
-  const myActiveChats = activeChats.filter(chat => chat.chat_agent_id === currentAgentId);
+  // Si el usuario es admin, mostrar todos los chats activos
+  const myActiveChats = isAdmin 
+    ? activeChats 
+    : activeChats.filter(chat => chat.chat_agent_id === currentAgentId);
+  
+  // Filtrar chats archivados para mostrar solo los asignados al agente actual
+  // Si el usuario es admin, mostrar todos los chats archivados
+  const myArchivedChats = isAdmin
+    ? archivedChats
+    : archivedChats.filter(chat => chat.chat_agent_id === currentAgentId);
   
   const handleAssignToMe = (userId: string, conversationId: string) => {
     if (!isAuthenticated) {
@@ -126,9 +135,9 @@ export function ChatList({
             >
               <Archive className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
               <span className="hidden md:inline ml-1 truncate">Archivados</span>
-              {archivedChats.length > 0 && (
+              {myArchivedChats.length > 0 && (
                 <Badge variant="secondary" className="ml-0.5 text-[10px] px-1 min-w-0 h-4 flex items-center justify-center">
-                  {archivedChats.length}
+                  {myArchivedChats.length}
                 </Badge>
               )}
             </TabsTrigger>
@@ -143,7 +152,7 @@ export function ChatList({
             {renderChatList(pendingChats, 'pending')}
           </TabsContent>
           <TabsContent value="archived" className="mt-2 space-y-2">
-            {renderChatList(archivedChats, 'archived')}
+            {renderChatList(myArchivedChats, 'archived')}
           </TabsContent>
         </ScrollArea>
       </Tabs>
