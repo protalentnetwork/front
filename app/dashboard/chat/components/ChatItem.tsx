@@ -3,8 +3,14 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Archive, Loader2 } from 'lucide-react';
+import { Archive, Loader2, RefreshCw } from 'lucide-react';
 import { ChatData, ChatTab } from '../types';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ChatItemProps {
   chat: ChatData;
@@ -15,6 +21,7 @@ interface ChatItemProps {
   getUsernameById: (id: string | null) => string;
   onSelect: (userId: string) => void;
   onArchive: (userId: string) => void;
+  onUnarchive?: (userId: string) => void;
   onAssign: (userId: string, conversationId: string) => void;
   isUserConnected: (userId: string) => boolean;
 }
@@ -28,10 +35,14 @@ export function ChatItem({
   getUsernameById,
   onSelect,
   onArchive,
+  onUnarchive,
   onAssign,
   isUserConnected
 }: ChatItemProps) {
   const userIsConnected = isUserConnected(chat.chat_user_id);
+
+  // Verificar si el chat tiene un ID de conversación
+  const hasConversationId = !!chat.conversationId;
 
   return (
     <div
@@ -86,7 +97,7 @@ export function ChatItem({
         </div>
 
         {/* Segunda fila: Badges y botones */}
-        {(type === 'active' || type === 'pending') && (
+        {(type === 'active' || type === 'pending' || type === 'archived') && (
           <div className="flex justify-between items-center w-full">
             {type === 'active' && (
               <>
@@ -98,20 +109,68 @@ export function ChatItem({
                     Asignado a {getUsernameById(chat.chat_agent_id)}
                   </span>
                 </Badge>
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onArchive(chat.chat_user_id);
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="text-[10px] sm:text-xs h-6 py-0 ml-2 flex-shrink-0 border border-primary-foreground"
-                >
-                  <Archive className="h-3 w-3 mr-1" />
-                  <span className="hidden sm:inline">Archivar</span>
-                  <span className="sm:hidden">Arch.</span>
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (hasConversationId) {
+                              onArchive(chat.chat_user_id);
+                            }
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="text-[10px] sm:text-xs h-6 py-0 ml-2 flex-shrink-0 border border-primary-foreground"
+                          disabled={!hasConversationId}
+                        >
+                          <Archive className="h-3 w-3 mr-1" />
+                          <span className="hidden sm:inline">Archivar</span>
+                          <span className="sm:hidden">Arch.</span>
+                        </Button>
+                      </div>
+                    </TooltipTrigger>
+                    {!hasConversationId && (
+                      <TooltipContent>
+                        <p>Abre la conversación primero para poder archivarla</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               </>
+            )}
+
+            {type === 'archived' && onUnarchive && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (hasConversationId) {
+                            onUnarchive(chat.chat_user_id);
+                          }
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="text-[10px] sm:text-xs h-6 py-0 ml-auto flex-shrink-0 border border-primary-foreground"
+                        disabled={!hasConversationId}
+                      >
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        <span className="hidden sm:inline">Desarchivar</span>
+                        <span className="sm:hidden">Desarch.</span>
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  {!hasConversationId && (
+                    <TooltipContent>
+                      <p>Abre la conversación primero para poder desarchivarla</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             )}
 
             {type === 'pending' && (

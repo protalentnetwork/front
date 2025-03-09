@@ -6,6 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Archive } from 'lucide-react';
 import { ChatData } from '../types';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ChatHeaderProps {
   selectedChat: string | null;
@@ -30,6 +36,9 @@ export function ChatHeader({
   // Verificar si el chat está asignado al agente actual
   const currentAgentId = user?.id;
   const isAssignedToCurrentAgent = activeChat?.chat_agent_id === currentAgentId;
+
+  // Verificar si el chat tiene un ID de conversación
+  const hasConversationId = !!activeChat?.conversationId;
 
   // Solo mostrar el botón de archivar si el chat está activo y asignado al agente actual
   const showArchiveButton = isActive && isAssignedToCurrentAgent;
@@ -64,15 +73,33 @@ export function ChatHeader({
           </Badge>
 
           {showArchiveButton && (
-            <Button
-              onClick={() => onArchive(selectedChat)}
-              variant="outline"
-              size="sm"
-              className="text-xs"
-            >
-              <Archive className="h-3 w-3 mr-1" />
-              Archivar chat
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Button
+                      onClick={() => {
+                        if (hasConversationId) {
+                          onArchive(selectedChat);
+                        }
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      disabled={!hasConversationId}
+                    >
+                      <Archive className="h-3 w-3 mr-1" />
+                      Archivar chat
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                {!hasConversationId && (
+                  <TooltipContent>
+                    <p>Abre la conversación primero para poder archivarla</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </div>

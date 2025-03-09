@@ -24,6 +24,7 @@ interface ChatListProps {
   selectChat: (userId: string) => void;
   assignToMe: (userId: string, conversationId: string) => void;
   archiveChat: (userId: string) => void;
+  unarchiveChat: (userId: string) => void;
   isUserConnected: (userId: string) => boolean;
 }
 
@@ -40,6 +41,7 @@ export function ChatList({
   selectChat,
   assignToMe,
   archiveChat,
+  unarchiveChat,
   isUserConnected,
 }: ChatListProps) {
   const { user } = useAuth();
@@ -79,6 +81,7 @@ export function ChatList({
         getUsernameById={getUsernameById}
         onSelect={selectChat}
         onArchive={archiveChat}
+        onUnarchive={type === 'archived' ? unarchiveChat : undefined}
         onAssign={handleAssignToMe}
         isUserConnected={isUserConnected}
       />

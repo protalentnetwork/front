@@ -30,6 +30,7 @@ export default function ChatDashboard() {
     selectChat,
     assignToMe,
     archiveChat,
+    unarchiveChat,
     getUsernameById,
     isUserConnected
   } = useChatState({
@@ -90,6 +91,7 @@ export default function ChatDashboard() {
         selectChat={selectChat}
         assignToMe={assignToMe}
         archiveChat={archiveChat}
+        unarchiveChat={unarchiveChat}
         isUserConnected={isUserConnected}
       />
 
