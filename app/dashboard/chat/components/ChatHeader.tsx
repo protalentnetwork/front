@@ -20,20 +20,20 @@ export function ChatHeader({
   onArchive,
   isUserConnected
 }: ChatHeaderProps) {
+  const { user } = useAuth();
   if (!selectedChat) return null;
 
   // Verificar si el chat está activo
   const activeChat = activeChats.find(chat => chat.chat_user_id === selectedChat);
   const isActive = !!activeChat;
-  
+
   // Verificar si el chat está asignado al agente actual
-  const { user } = useAuth();
   const currentAgentId = user?.id;
   const isAssignedToCurrentAgent = activeChat?.chat_agent_id === currentAgentId;
-  
+
   // Solo mostrar el botón de archivar si el chat está activo y asignado al agente actual
   const showArchiveButton = isActive && isAssignedToCurrentAgent;
-  
+
   const connected = isUserConnected(selectedChat);
 
   return (
@@ -46,8 +46,8 @@ export function ChatHeader({
           <Badge
             variant={connected ? 'default' : 'destructive'}
             className={`text-[10px] sm:text-xs py-0 h-5 flex items-center gap-1 ${connected
-                ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                : 'bg-red-100 text-red-800 hover:bg-red-200'
+              ? 'bg-green-100 text-green-800 hover:bg-green-200'
+              : 'bg-red-100 text-red-800 hover:bg-red-200'
               }`}
           >
             {connected ? (
