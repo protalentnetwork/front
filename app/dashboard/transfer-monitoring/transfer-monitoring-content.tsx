@@ -65,9 +65,10 @@ export function TransferMonitoringContent() {
           setTransactions(data);
           setIsLoading(false);
         }, 800);
-      } catch (err: any) {
-        console.error('Error en el fetch:', err);
-        setError(err.message);
+      } catch (err: unknown) {
+        const error = err as Error;
+        console.error('Error en el fetch:', error);
+        setError(error.message);
         setIsLoading(false);
       }
     };

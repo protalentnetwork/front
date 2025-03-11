@@ -4,7 +4,6 @@ import * as React from "react"
 import { useMemo } from "react"
 import {
   CircleCheckBig,
-  CircleHelp,
   Hourglass,
   LampDesk,
   Landmark,
@@ -14,7 +13,6 @@ import {
   Users,
 } from "lucide-react"
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -22,7 +20,6 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/hooks/useAuth" // Ajusta la ruta según donde tengas useAuth
-import { NavSecondary } from "./nav-secondary"
 
 // Datos estáticos del sidebar fuera del componente
 const navMainItems = [

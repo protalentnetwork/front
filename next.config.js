@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   async rewrites() {
     return [
       // Zendesk routes (incluyendo chats)
@@ -52,9 +51,6 @@ const nextConfig = {
     ]
   },
   experimental: {
-    // Optimizaciones para páginas del dashboard
-    optimizeCss: true,
-    scrollRestoration: true,
     // Permitir animaciones y transiciones en cambios de páginas
     serverActions: {
       bodySizeLimit: '2mb',

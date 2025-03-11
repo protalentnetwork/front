@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/sidebar"
 import { useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { toast } from "sonner"
 
 export function NavUser({
   user,

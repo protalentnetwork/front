@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, TooltipProps } from 'recharts';
 import { Clock, Users, MessageSquare, Ticket, AlertCircle } from 'lucide-react';
-import { reportApi, StatusDistribution, TicketsByAgent, TicketsTrend, MessageVolume, MessageDistribution, ResponseTimeByAgent, LoginActivity, UserRole, NewUsersByMonth, DashboardSummary, ConversationStatusDistribution } from './services/report.api';
+import { StatusDistribution, TicketsByAgent, TicketsTrend, MessageVolume, MessageDistribution, ResponseTimeByAgent, LoginActivity, UserRole, NewUsersByMonth, DashboardSummary, ConversationStatusDistribution } from './services/report.api';
 import { useTheme } from 'next-themes';
 import useSWR from 'swr';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,29 +31,10 @@ interface ChartCardProps {
     error?: string | null;
 }
 
-interface PieChartLabelProps {
-    name: string;
-    percent: number;
-    cx?: number;
-    cy?: number;
-    midAngle?: number;
-    innerRadius?: number;
-    outerRadius?: number;
-    index?: number;
-    value?: number;
-    fill?: string;
-    payload?: StatusDistribution | TicketsByAgent | TicketsTrend | MessageVolume | MessageDistribution | ResponseTimeByAgent | LoginActivity | UserRole | NewUsersByMonth | ConversationStatusDistribution;
-}
-
 // Define un tipo genérico para los datos de gráficos
 type ChartData = StatusDistribution[] | TicketsByAgent[] | TicketsTrend[] |
     MessageVolume[] | MessageDistribution[] | ResponseTimeByAgent[] |
     LoginActivity[] | UserRole[] | NewUsersByMonth[] | ConversationStatusDistribution[];
-
-// Define una interfaz para los errores
-interface ReportErrors {
-    [key: string]: string | null;
-}
 
 // Definición de colores para gráficos
 const LIGHT_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];

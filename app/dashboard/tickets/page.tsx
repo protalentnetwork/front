@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { TicketsClient } from "@/components/tickets/tickets-client"
+import { TicketsClient, type Ticket } from "@/components/tickets/tickets-client"
 import { RoleGuard } from "@/components/role-guard"
 import { TableSkeleton, type ColumnConfig } from '@/components/ui/table-skeleton'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -78,7 +78,7 @@ function TicketsPageSkeleton() {
 }
 
 // Tickets content component that renders the client component
-function TicketsContent({ tickets }: { tickets: any[] }) {
+function TicketsContent({ tickets }: { tickets: Ticket[] }) {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">

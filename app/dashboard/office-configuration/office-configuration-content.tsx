@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Loader2 } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { CreateOfficeModal } from "./create-office-modal";
 import { EditOfficeModal } from "./edit-office-modal";
 import { DeleteOfficeModal } from "./delete-office-modal";
