@@ -34,8 +34,7 @@ export const useSocket = () => useContext(SocketContext);
 
 // Socket configuration
 const createSocket = (): Socket => {
-  // return io('https://backoffice-casino-back-production.up.railway.app', {
-  return io('http://localhost:8000', {
+  return io('https://backoffice-casino-back-production.up.railway.app', {
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: 5,
