@@ -1,13 +1,12 @@
-'use client';
-
-import React from 'react';
-import ChatDashboard from './ChatDashboard';
+import { Suspense } from 'react';
 import { MessagesSquare } from 'lucide-react';
 import { RoleGuard } from '@/components/role-guard';
+import ChatDashboard from './ChatDashboard';
+import { ChatPageSkeleton } from './components/ChatPageSkeleton';
 
 export default function ChatPage() {
   return (
-    <RoleGuard allowedRoles={['admin', 'operador']}>
+    <RoleGuard allowedRoles={['admin', 'operador', 'encargado']}>
       <div className="p-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
           <div className="flex items-center gap-2">
@@ -18,7 +17,9 @@ export default function ChatPage() {
             Gestiona todas las conversaciones con los usuarios
           </div>
         </div>
-        <ChatDashboard />
+        <Suspense fallback={<ChatPageSkeleton />}>
+          <ChatDashboard />
+        </Suspense>
       </div>
     </RoleGuard>
   );

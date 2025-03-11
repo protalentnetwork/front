@@ -40,21 +40,21 @@ export function NavUser({
 
   const handleLogout = async () => {
     try {
-      await signOut({ redirect: false });
-      // Usamos setTimeout para evitar problemas de actualización de estado
+      // Primero intentamos llamar a signOut sin esperar
+      signOut({ 
+        redirect: true,
+        callbackUrl: '/auth/login'
+      });
+      
+      // Como respaldo, si la redirección no ocurre (lo que no debería pasar con redirect: true)
+      // implementamos nuestra propia redirección después de un breve retraso
       setTimeout(() => {
-        toast.success('Sesión cerrada correctamente');
-      }, 100);
-
-      router.push('/auth/login');
-      router.refresh();
+        router.push('/auth/login');
+        router.refresh();
+      }, 500);
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
-
-      // Usamos setTimeout para evitar problemas de actualización de estado
-      setTimeout(() => {
-        toast.error('Error al cerrar sesión');
-      }, 100);
+      router.push('/auth/login');
     }
   }
 

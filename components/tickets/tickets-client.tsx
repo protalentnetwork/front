@@ -13,6 +13,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { Search, X } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { TableSkeleton, type ColumnConfig } from '@/components/ui/table-skeleton'
+import { SkeletonLoader } from "@/components/skeleton-loader"
+import { Skeleton } from "@/components/ui/skeleton"
 
 // Sharing the same type definition between components
 export interface TicketUser {
@@ -58,8 +61,22 @@ export function TicketsClient({ initialTickets }: TicketsClientProps) {
     status: "all",
     user: "",
     dateRange: "all",
-    operator: ""  // Ahora será el ID del operador como string
+    operator: "all"  // Aseguramos que tenga un valor inicial válido
   })
+  // Estado para controlar la carga inicial
+  const [isLoading, setIsLoading] = useState(true)
+  
+  // Configuración de columnas para la tabla de tickets (para el skeleton)
+  const tableColumns: ColumnConfig[] = [
+    { width: 'w-[70px]', cell: { type: 'text', widthClass: 'w-12' } },    // ID
+    { cell: { type: 'double', widthClass: 'w-3/4' } },                    // Usuario
+    { cell: { type: 'text', widthClass: 'w-full' } },                     // Asunto
+    { cell: { type: 'text', widthClass: 'w-full' } },                     // Detalle
+    { cell: { type: 'badge', widthClass: 'w-20' } },                      // Estado
+    { cell: { type: 'double', widthClass: 'w-3/4' } },                    // Operador Asignado
+    { cell: { type: 'text', widthClass: 'w-32' } },                       // Creado
+    { cell: { type: 'text', widthClass: 'w-32' } },                       // Actualizado
+  ]
 
   // Obtener los operadores al cargar el componente
   useEffect(() => {
@@ -80,10 +97,14 @@ export function TicketsClient({ initialTickets }: TicketsClientProps) {
     fetchOperators();
   }, []);
 
+  // Efecto para cargar los datos iniciales con un retraso simulado
   useEffect(() => {
     if (Array.isArray(initialTickets)) {
-      setTickets(initialTickets)
-      setFilteredTickets(initialTickets)
+      setTimeout(() => {
+        setTickets(initialTickets)
+        setFilteredTickets(initialTickets)
+        setIsLoading(false)
+      }, 800) // Añadimos un pequeño retraso para mostrar el skeleton
     }
   }, [initialTickets])
 
@@ -105,7 +126,9 @@ export function TicketsClient({ initialTickets }: TicketsClientProps) {
         userEmail.toLowerCase().includes(filters.user.toLowerCase())
       
       // Filtrado por operador por ID
-      const operatorMatch = !filters.operator || filters.operator === "all" || 
+      const operatorMatch = 
+        filters.operator === "all" || 
+        (filters.operator === "unassigned" && !operatorId) || 
         operatorId === filters.operator;
       
       // Date filtering logic
@@ -157,7 +180,7 @@ export function TicketsClient({ initialTickets }: TicketsClientProps) {
       status: "all",
       user: "",
       dateRange: "all",
-      operator: "all"  // Cambio aquí para usar "all" como valor por defecto
+      operator: "all"
     })
   }
 
@@ -177,110 +200,168 @@ export function TicketsClient({ initialTickets }: TicketsClientProps) {
     { value: "thisMonth", label: "Este mes" }
   ]
 
-  return (
-    <>
-      <Card className="mb-4">
-        <CardHeader className="pb-2">
+  // Componentes para alternar entre el skeleton y el contenido real
+  const FiltersContent = (
+    <Card className="mb-4">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Asunto</label>
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por asunto..."
-                  className="pl-8"
-                  value={filters.subject}
-                  onChange={(e) => handleFilterChange("subject", e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Estado</label>
-              <Select
-                value={filters.status}
-                onValueChange={(value) => handleFilterChange("status", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Usuario</label>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearFilters}
+            className="h-8 gap-1"
+          >
+            <X className="h-4 w-4" />
+            Limpiar
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Asunto</label>
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nombre o email..."
-                value={filters.user}
-                onChange={(e) => handleFilterChange("user", e.target.value)}
+                placeholder="Buscar por asunto..."
+                className="pl-8"
+                value={filters.subject}
+                onChange={(e) => handleFilterChange("subject", e.target.value)}
               />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Fecha de creación</label>
-              <Select
-                value={filters.dateRange}
-                onValueChange={(value) => handleFilterChange("dateRange", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar rango" />
-                </SelectTrigger>
-                <SelectContent>
-                  {dateRangeOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Operador Asignado</label>
-              <Select
-                value={filters.operator}
-                onValueChange={(value) => handleFilterChange("operator", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar operador" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los operadores</SelectItem>
-                  {operators.map(operator => (
-                    <SelectItem key={operator.id} value={operator.id.toString()}>
-                      {operator.username} ({operator.ticketCount} tickets)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
           
-          <div className="flex justify-end mt-4">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={clearFilters}
-              disabled={!filters.subject && filters.status === "all" && !filters.user && filters.dateRange === "all" && filters.operator === "all"}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Estado</label>
+            <Select
+              value={filters.status}
+              onValueChange={(value) => handleFilterChange("status", value)}
             >
-              <X className="mr-2 h-4 w-4" />
-              Limpiar filtros
-            </Button>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar estado" />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </CardContent>
-      </Card>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Usuario</label>
+            <Input
+              placeholder="Buscar por nombre o email..."
+              value={filters.user}
+              onChange={(e) => handleFilterChange("user", e.target.value)}
+            />
+          </div>
 
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Fecha de creación</label>
+            <Select
+              value={filters.dateRange}
+              onValueChange={(value) => handleFilterChange("dateRange", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar rango" />
+              </SelectTrigger>
+              <SelectContent>
+                {dateRangeOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Operador Asignado</label>
+            <Select
+              value={filters.operator}
+              onValueChange={(value) => handleFilterChange("operator", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar operador" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los operadores</SelectItem>
+                <SelectItem value="unassigned">Sin asignar</SelectItem>
+                {operators.map(op => (
+                  <SelectItem key={op.id} value={op.id.toString()}>
+                    {op.username} ({op.ticketCount})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+  
+  const FiltersSkeleton = (
+    <Card className="mb-4 p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <Skeleton className="h-5 w-20" />
+        <Skeleton className="h-8 w-28" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      </div>
+    </Card>
+  )
+  
+  const TableContent = (
+    <Card>
       <TicketsTable tickets={filteredTickets} />
+    </Card>
+  )
+
+  return (
+    <>
+      {/* Filtros con skeleton */}
+      <SkeletonLoader
+        skeleton={FiltersSkeleton}
+        isLoading={isLoading}
+      >
+        {FiltersContent}
+      </SkeletonLoader>
+      
+      {/* Tabla con skeleton */}
+      <SkeletonLoader
+        skeleton={
+          <Card>
+            <TableSkeleton columns={tableColumns} rowCount={5} />
+          </Card>
+        }
+        isLoading={isLoading}
+      >
+        {TableContent}
+      </SkeletonLoader>
     </>
   )
 } 

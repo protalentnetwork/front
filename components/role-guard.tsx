@@ -22,7 +22,7 @@ export function RoleGuard({
   allowedRoles, 
   fallbackUrl = '/dashboard'
 }: RoleGuardProps) {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, isAdmin, isManager, isOperator } = useAuth()
   
   // Show loading state while checking auth
   if (isLoading) {
@@ -38,7 +38,34 @@ export function RoleGuard({
   
   // Redirect if not allowed
   if (!hasPermission) {
-    redirect(fallbackUrl)
+    // Redirigir de forma inteligente en función del rol
+    let safeRedirectUrl = '/dashboard';
+    
+    // Asignar una ruta segura según el rol del usuario
+    // y evitar cualquier posible ciclo de redirección
+    if (user?.role) {
+      if (isAdmin) {
+        safeRedirectUrl = '/dashboard/users';
+      } else if (isManager) {
+        safeRedirectUrl = '/dashboard/transfer-accounts';
+      } else if (isOperator) {
+        safeRedirectUrl = '/dashboard/chat';
+      } else {
+        // Default para cualquier otro rol
+        safeRedirectUrl = '/dashboard/transfer-monitoring';
+      }
+    }
+    
+    // Solo usamos el fallbackUrl proporcionado si es diferente a las rutas que sabemos que pueden causar loops
+    if (fallbackUrl && 
+        fallbackUrl !== '/dashboard' &&
+        fallbackUrl !== '/dashboard/tickets' &&
+        allowedRoles.length === 1 && 
+        (allowedRoles.includes(user?.role || ''))) {
+      safeRedirectUrl = fallbackUrl;
+    }
+    
+    redirect(safeRedirectUrl);
   }
   
   // Render children if user has permission

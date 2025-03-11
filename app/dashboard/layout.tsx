@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { Loader2 } from "lucide-react";
 import { SocketProvider } from "@/lib/SocketContext";
 import { NotificationProvider } from "@/lib/NotificationContext";
+import { DashboardNavigation } from "@/components/dashboard-navigation";
 
 export default function DashboardLayout({
     children,
@@ -41,7 +42,9 @@ export default function DashboardLayout({
                             <ModeToggle />
                         </header>
                         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-                            {children}
+                            <DashboardNavigation>
+                                {children}
+                            </DashboardNavigation>
                         </div>
                     </SidebarInset>
                 </SidebarProvider>

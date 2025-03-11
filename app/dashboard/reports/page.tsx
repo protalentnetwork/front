@@ -1,13 +1,13 @@
-'use client'
-
 import ReportsDashboard from "@/app/report/report"
-
+import { RoleGuard } from "@/components/role-guard"
 
 export default function Page() {
   return (
-    <div className="container mx-auto dark:text-white">
-      <h1 className="text-2xl font-bold mb-4"></h1>
-      <ReportsDashboard />
-    </div>
+    <RoleGuard allowedRoles={['admin', 'encargado']}>
+      <div className="container mx-auto dark:text-white">
+        <h1 className="text-2xl font-bold mb-4">Reportes</h1>
+        <ReportsDashboard />
+      </div>
+    </RoleGuard>
   )
 }

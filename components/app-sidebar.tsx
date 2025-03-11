@@ -22,6 +22,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/hooks/useAuth" // Ajusta la ruta según donde tengas useAuth
+import { NavSecondary } from "./nav-secondary"
 
 // Datos estáticos del sidebar fuera del componente
 const navMainItems = [
@@ -50,45 +51,27 @@ const navMainItems = [
 
 const ticketsItems = [
   {
-    name: "Tickets",
-    url: "/dashboard/tickets",
-    icon: Ticket,
-  },
-  {
-    name: "Chat con clientes",
+    title: "Chat con clientes",
     url: "/dashboard/chat",
     icon: MessagesSquare,
+  },
+  {
+    title: "Tickets",
+    url: "/dashboard/tickets",
+    icon: Ticket,
   },
 ];
 
 const projectsItems = [
   {
-    name: "Monitoreo pendientes",
+    title: "Monitoreo pendientes",
     url: "/dashboard/web-monitoring",
     icon: Hourglass,
   },
   {
-    name: "Monitoreo de completados",
+    title: "Monitoreo de completados",
     url: "/dashboard/transfer-monitoring",
     icon: CircleCheckBig,
-  },
-];
-
-const othersItems = [
-  {
-    name: "Recupero por WhatsApp",
-    url: "/dashboard/whatsapp-recovery",
-    icon: CircleHelp,
-  },
-  {
-    name: "Descarga de cuentas",
-    url: "/dashboard/download-accounts",
-    icon: CircleHelp,
-  },
-  {
-    name: "Historial landing web",
-    url: "/dashboard/landing-history",
-    icon: CircleHelp,
   },
 ];
 
@@ -104,19 +87,42 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const filteredItems = useMemo(() => {
     if (isOperator) {
       return {
-        navMain: [],
+        navMain: [
+          {
+            title: "Usuarios",
+            url: "/dashboard/users",
+            icon: Users,
+            isActive: true,
+          }
+        ],
         tickets: ticketsItems,
-        projects: [],
+        projects: projectsItems,
         others: []
       };
     }
 
     if (isManager) {
       return {
-        navMain: [],
-        tickets: [],
+        navMain: [
+          {
+            title: "Usuarios",
+            url: "/dashboard/users",
+            icon: Users,
+            isActive: true,
+          },
+          {
+            title: "Cuentas para transferencias",
+            url: "/dashboard/transfer-accounts",
+            icon: Landmark,
+          },
+          {
+            title: "Reportes",
+            url: "/dashboard/reports",
+            icon: PieChart,
+          },
+        ],
+        tickets: ticketsItems,
         projects: projectsItems,
-        others: []
       };
     }
 
@@ -125,7 +131,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       navMain: navMainItems,
       tickets: ticketsItems,
       projects: projectsItems,
-      others: othersItems
     };
   }, [isOperator, isManager]);
 
@@ -133,16 +138,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar variant="inset" {...props}>
       <SidebarContent>
         {filteredItems.navMain.length > 0 && (
-          <NavMain items={filteredItems.navMain} />
+          <NavMain items={filteredItems.navMain} blockTitle="General" />
         )}
         {filteredItems.tickets.length > 0 && (
-          <NavProjects projects={filteredItems.tickets} title="Tickets" />
+          <NavMain items={filteredItems.tickets} blockTitle="Tickets" />
         )}
         {filteredItems.projects.length > 0 && (
-          <NavProjects projects={filteredItems.projects} title="Monitoreos" />
-        )}
-        {filteredItems.others.length > 0 && (
-          <NavProjects projects={filteredItems.others} title="Otros" />
+          <NavMain items={filteredItems.projects} blockTitle="Monitoreos" />
         )}
       </SidebarContent>
       <SidebarFooter>

@@ -17,13 +17,7 @@ const apiRoutes = [
 
 // Rutas accesibles solo para admin
 const adminOnlyRoutes = [
-  '/dashboard/users',
-  '/dashboard/transfer-accounts',
-  '/dashboard/reports',
   '/dashboard/office-configuration',
-  '/dashboard/whatsapp-recovery',
-  '/dashboard/download-accounts',
-  '/dashboard/landing-history',
 ]
 
 // Rutas accesibles para operadores
@@ -31,13 +25,24 @@ const operatorRoutes = [
   '/dashboard',  // Página base del dashboard
   '/dashboard/tickets',
   '/dashboard/chat',
-]
-
-// Rutas accesibles para encargados
-const encargadoRoutes = [
-  '/dashboard',  // Página base del dashboard
+  '/dashboard/users',
   '/dashboard/web-monitoring',
   '/dashboard/transfer-monitoring',
+]
+
+// Rutas accesibles para encargados (pueden ver todo menos office-configuration)
+const encargadoRoutes = [
+  '/dashboard',  // Página base del dashboard
+  '/dashboard/tickets',
+  '/dashboard/chat',
+  '/dashboard/users',
+  '/dashboard/web-monitoring',
+  '/dashboard/transfer-monitoring',
+  '/dashboard/transfer-accounts',
+  '/dashboard/reports',
+  '/dashboard/whatsapp-recovery',
+  '/dashboard/download-accounts',
+  '/dashboard/landing-history',
 ]
 
 export async function middleware(request: NextRequest) {
@@ -56,7 +61,7 @@ export async function middleware(request: NextRequest) {
 
   // Si es una ruta pública y el usuario está autenticado, redirigir al dashboard
   if (isPublicRoute && session) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return NextResponse.redirect(new URL('/dashboard/chat', request.url))
   }
 
   // Si no es una ruta pública y el usuario no está autenticado, redirigir al login
@@ -76,28 +81,7 @@ export async function middleware(request: NextRequest) {
   if (path.startsWith('/dashboard')) {
     const userRole = session?.user?.role
 
-    // Restringir acceso a rutas de admin para usuarios que no son admin
-    if (userRole !== 'admin') {
-      // Verificar si el usuario está intentando acceder a una ruta solo para admin
-      const isAttemptingAdminRoute = adminOnlyRoutes.some(route => 
-        path.startsWith(route) || path === route
-      )
-
-      if (isAttemptingAdminRoute) {
-        // Si es operador, redirigir a la página de tickets
-        if (userRole === 'operador') {
-          return NextResponse.redirect(new URL('/dashboard/tickets', request.url))
-        }
-        // Si es encargado, redirigir a la página de monitoreo web
-        if (userRole === 'encargado') {
-          return NextResponse.redirect(new URL('/dashboard/web-monitoring', request.url))
-        }
-        // Para otros roles, redirigir al dashboard (que a su vez redirigirá según la lógica de la app)
-        return NextResponse.redirect(new URL('/dashboard', request.url))
-      }
-    }
-
-    // Si es operador, verificar que solo acceda a sus rutas permitidas
+    // Restricciones específicas por rol
     if (userRole === 'operador') {
       const isAllowedOperatorRoute = operatorRoutes.some(route => 
         path.startsWith(route) || path === route
@@ -108,8 +92,16 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Si es encargado, verificar que solo acceda a sus rutas permitidas
     if (userRole === 'encargado') {
+      // Verificar si el usuario está intentando acceder a una ruta solo para admin
+      const isAttemptingAdminRoute = adminOnlyRoutes.some(route => 
+        path.startsWith(route) || path === route
+      )
+
+      if (isAttemptingAdminRoute) {
+        return NextResponse.redirect(new URL('/dashboard/web-monitoring', request.url))
+      }
+
       const isAllowedEncargadoRoute = encargadoRoutes.some(route => 
         path.startsWith(route) || path === route
       )

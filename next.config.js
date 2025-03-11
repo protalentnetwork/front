@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
+  swcMinify: true,
   async rewrites() {
     return [
       // Zendesk routes (incluyendo chats)
@@ -50,14 +52,17 @@ const nextConfig = {
     ]
   },
   experimental: {
-    // Configuración correcta de serverActions
+    // Optimizaciones para páginas del dashboard
+    optimizeCss: true,
+    scrollRestoration: true,
+    // Permitir animaciones y transiciones en cambios de páginas
     serverActions: {
-      enabled: true
-    }
+      bodySizeLimit: '2mb',
+    },
   },
   // Asegurarse de que las imágenes y otros recursos se sirvan correctamente
   images: {
-    domains: ['backoffice-casino-front-production.up.railway.app'],
+    domains: ['backoffice-casino-front-production.up.railway.app', 'localhost'],
   },
 }
 

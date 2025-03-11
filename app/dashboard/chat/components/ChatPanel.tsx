@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { ChatHeader } from './ChatHeader';
 import { MessageList } from './MessageList';
@@ -9,6 +9,8 @@ import { Message, ChatData, MessageEndRef } from '../types';
 import { Socket } from 'socket.io-client';
 import { useAuth } from '@/hooks/useAuth';
 import { AlertTriangle, Archive } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { SkeletonLoader } from '@/components/skeleton-loader';
 
 interface ChatPanelProps {
   selectedChat: string | null;
@@ -37,6 +39,19 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const { user } = useAuth();
   const currentAgentId = user?.id;
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulamos un tiempo de carga para mostrar los skeletons
+  useEffect(() => {
+    if (selectedChat) {
+      setIsLoading(true);
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 800);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [selectedChat]);
 
   // Verificar si el chat está asignado a otro agente
   const isAssignedToOtherAgent = () => {
@@ -78,46 +93,70 @@ export function ChatPanel({
     return true;
   };
 
+  // Skeleton para los mensajes
+  const messagesListSkeleton = (
+    <div className="flex-1 p-4 overflow-auto">
+      <div className="space-y-4">
+        {Array(5).fill(0).map((_, i) => (
+          <div key={i} className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
+            <div className={`max-w-[80%] ${i % 2 === 0 ? 'mr-auto' : 'ml-auto'}`}>
+              <Skeleton className={`h-20 w-64 rounded-lg ${i % 2 === 0 ? 'rounded-tl-none' : 'rounded-tr-none'}`} />
+              <Skeleton className="h-3 w-24 mt-1" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Contenido principal cuando hay un chat seleccionado
+  const chatContent = selectedChat ? (
+    <>
+      <ChatHeader
+        selectedChat={selectedChat}
+        activeChats={activeChats}
+        onArchive={onArchive}
+        isUserConnected={isUserConnected}
+      />
+      <SkeletonLoader
+        isLoading={isLoading}
+        skeleton={messagesListSkeleton}
+      >
+        <MessageList messages={messages} messagesEndRef={messagesEndRef} />
+      </SkeletonLoader>
+      {isAssignedToOtherAgent() ? (
+        <div className="p-4 bg-amber-50 dark:bg-amber-950 border-t text-amber-800 dark:text-amber-200 text-sm rounded-b-xl">
+          <AlertTriangle className="h-4 w-4 inline-block mr-2" />
+          No puedes enviar mensajes a este chat ya que está asignado a otro agente.
+        </div>
+      ) : isChatArchived() ? (
+        <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t text-gray-500 text-sm">
+          <Archive className="h-4 w-4 inline-block mr-2" />
+          Esta conversación está archivada. No puedes enviar mensajes.
+        </div>
+      ) : isNotAssignedToCurrentUser() ? (
+        <div className="p-4 bg-amber-50 dark:bg-amber-950 border-t text-amber-800 dark:text-amber-200 text-sm rounded-b-xl">
+          <AlertTriangle className="h-4 w-4 inline-block mr-2" />
+          Para enviar mensajes a este chat, primero debes asignar el chat a ti.
+        </div>
+      ) : (
+        <ChatInput
+          chatId={selectedChat}
+          socket={socket}
+          conversationId={currentConversationId || undefined}
+          onSendMessage={onSendMessage}
+        />
+      )}
+    </>
+  ) : (
+    <div className="h-full flex items-center justify-center text-muted-foreground">
+      Selecciona un chat para comenzar
+    </div>
+  );
+
   return (
     <Card className="flex-1 flex flex-col">
-      {selectedChat ? (
-        <>
-          <ChatHeader
-            selectedChat={selectedChat}
-            activeChats={activeChats}
-            onArchive={onArchive}
-            isUserConnected={isUserConnected}
-          />
-          <MessageList messages={messages} messagesEndRef={messagesEndRef} />
-          {isAssignedToOtherAgent() ? (
-            <div className="p-4 bg-amber-50 dark:bg-amber-950 border-t text-amber-800 dark:text-amber-200 text-sm rounded-b-xl">
-              <AlertTriangle className="h-4 w-4 inline-block mr-2" />
-              No puedes enviar mensajes a este chat ya que está asignado a otro agente.
-            </div>
-          ) : isChatArchived() ? (
-            <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t text-gray-500 text-sm">
-              <Archive className="h-4 w-4 inline-block mr-2" />
-              Esta conversación está archivada. No puedes enviar mensajes.
-            </div>
-          ) : isNotAssignedToCurrentUser() ? (
-            <div className="p-4 bg-amber-50 dark:bg-amber-950 border-t text-amber-800 dark:text-amber-200 text-sm rounded-b-xl">
-              <AlertTriangle className="h-4 w-4 inline-block mr-2" />
-              Para enviar mensajes a este chat, primero debes asignar el chat a ti.
-            </div>
-          ) : (
-            <ChatInput
-              chatId={selectedChat}
-              socket={socket}
-              conversationId={currentConversationId || undefined}
-              onSendMessage={onSendMessage}
-            />
-          )}
-        </>
-      ) : (
-        <div className="h-full flex items-center justify-center text-muted-foreground">
-          Selecciona un chat para comenzar
-        </div>
-      )}
+      {chatContent}
     </Card>
   );
 }

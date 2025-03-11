@@ -5,19 +5,14 @@ import { useAuth } from '@/hooks/useAuth'
 import { useEffect } from 'react'
 
 export default function DashboardPage() {
-  const { isOperator, isManager, isLoading } = useAuth()
+  const { isLoading } = useAuth()
   
   useEffect(() => {
     if (!isLoading) {
-      if (isOperator) {
-        redirect("/dashboard/tickets")
-      } else if (isManager) {
-        redirect("/dashboard/web-monitoring")
-      } else {
-        redirect("/dashboard/users")
-      }
+      // Redirect all users to chat page
+      redirect("/dashboard/chat")
     }
-  }, [isOperator, isManager, isLoading])
+  }, [isLoading])
   
   // Show nothing while determining where to redirect
   return null

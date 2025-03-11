@@ -1,6 +1,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 export function useAuth(requireAuth = true) {
   const { data: session, status } = useSession();
@@ -14,8 +15,32 @@ export function useAuth(requireAuth = true) {
     }
   }, [status, requireAuth, router]);
 
-  const logout = () => {
-    signOut({ redirect: false });
+  const logout = async () => {
+    try {
+      // Mostrar un indicador de carga (opcional)
+      toast.loading('Cerrando sesión...');
+      
+      // Llamar a signOut con callbackUrl específico
+      await signOut({ 
+        redirect: false,
+        callbackUrl: '/auth/login'
+      });
+      
+      // Limpiar cualquier estado local si es necesario
+      localStorage.removeItem('user-preferences');
+      
+      // Mostrar toast de éxito
+      toast.success('Sesión cerrada correctamente');
+      
+      // Redirigir al login
+      setTimeout(() => {
+        router.push('/auth/login');
+        router.refresh();
+      }, 100);
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      toast.error('Error al cerrar sesión');
+    }
   }
 
   return {
